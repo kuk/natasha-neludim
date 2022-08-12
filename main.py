@@ -386,6 +386,7 @@ TOP_CITIES = [
     'Санкт-Петербург',
     'Киев',
     'Минск',
+    'Лондон',
     'Берлин',
 ]
 
@@ -454,9 +455,9 @@ async def handle_edit_city(context, message):
     user = context.user.get()
     user.state = EDIT_CITY_STATE
 
-    markup = ReplyKeyboardMarkup()
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for city in TOP_CITIES:
-        markup.add(KeyboardButton(city))
+        markup.insert(KeyboardButton(city))
 
     await message.answer(
         text=EDIT_CITY_TEXT,
