@@ -144,25 +144,25 @@ async def test_bot_start(context):
         ['setMyCommands', '{"commands"'],
         ['sendMessage', '{"chat_id": 113947584, "text": "Бот раз в неделю']
     ])
-    assert context.db.users == [User(user_id=113947584, intro=Intro(name='Alexander Kukushkin'))]
+    assert context.db.users == [User(user_id=113947584, username='alexkuk', intro=Intro(name='Alexander Kukushkin'))]
 
 
 async def test_bot_edit_name(context):
-    context.db.users = [User(user_id=113947584, intro=Intro(name='A K'))]
+    context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_intro'))
     await process_update(context, START_JSON.replace('/start', '/edit_name'))
     await process_update(context, START_JSON.replace('/start', 'Alexander Kukushkin'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', '{"chat_id": 113947584, "text": "Имя: A K'],
-        ['sendMessage', '{"chat_id": 113947584, "text": "Напиши свое настоящее имя'],
+        ['sendMessage', '{"chat_id": 113947584, "text": "Имя:'],
+        ['sendMessage', '{"chat_id": 113947584, "text": "Напиши настоящее имя'],
         ['sendMessage', '{"chat_id": 113947584, "text": "Имя: Alexander Kukushkin'],
     ])
-    assert context.db.users == [User(user_id=113947584, intro=Intro(name='Alexander Kukushkin'))]
+    assert context.db.users[0].intro.name == 'Alexander Kukushkin'
 
 
 async def test_bot_edit_city(context):
-    context.db.users = [User(user_id=113947584, intro=Intro(name='A K'))]
+    context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_city'))
     await process_update(context, START_JSON.replace('/start', 'Moscow'))
 
@@ -170,11 +170,11 @@ async def test_bot_edit_city(context):
         ['sendMessage', '{"chat_id": 113947584, "text": "Напиши город'],
         ['sendMessage', 'Город: Moscow'],
     ])
-    assert context.db.users == [User(user_id=113947584, intro=Intro(name='A K', city='Moscow'))]
+    assert context.db.users[0].intro.city == 'Moscow'
 
 
 async def test_bot_edit_links(context):
-    context.db.users = [User(user_id=113947584, intro=Intro(name='A K'))]
+    context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_links'))
     await process_update(context, START_JSON.replace('/start', 'vk.com/alexkuk'))
 
@@ -182,23 +182,14 @@ async def test_bot_edit_links(context):
         ['sendMessage', '{"chat_id": 113947584, "text": "Накидай ссылок'],
         ['sendMessage', 'Ссылки: vk.com/alexkuk'],
     ])
-    assert context.db.users == [User(user_id=113947584, intro=Intro(name='A K', links='vk.com/alexkuk'))]
+    assert context.db.users[0].intro.links == 'vk.com/alexkuk'
 
 
-async def test_bot_empty_name(context):
+async def test_bot_empty_edit(context):
     context.db.users = [User(user_id=113947584, intro=Intro(name='A K'))]
     await process_update(context, START_JSON.replace('/start', '/edit_name'))
     await process_update(context, START_JSON.replace('/start', '/empty'))
-
-    assert context.db.users == [User(user_id=113947584, intro=Intro(name='Alexander Kukushkin'))]
-
-
-async def test_bot_empty_city(context):
-    context.db.users = [User(user_id=113947584, intro=Intro(name='A K', city='Moscow'))]
-    await process_update(context, START_JSON.replace('/start', '/edit_city'))
-    await process_update(context, START_JSON.replace('/start', '/empty'))
-
-    assert context.db.users == [User(user_id=113947584, intro=Intro(name='A K'))]
+    assert context.db.users[0].intro.name is None
 
 
 async def test_bot_cancel_edit(context):
