@@ -198,3 +198,10 @@ async def test_bot_cancel_edit(context):
     await process_update(context, START_JSON.replace('/start', '/cancel'))
 
     assert context.db.users == [User(user_id=113947584, intro=Intro(name='A K', links='vk.com/alexkuk'))]
+
+
+async def test_bot_stub(context):
+    await process_update(context, START_JSON.replace('/start', '/participate'))
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '{"chat_id": 113947584, "text"']
+    ])

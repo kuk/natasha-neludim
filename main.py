@@ -308,9 +308,14 @@ EDIT_LINKS_COMMAND = 'edit_links'
 CANCEL_COMMAND = 'cancel'
 EMPTY_COMMAND = 'empty'
 
-PAUSE_COMMAND = 'pause'
-UNPAUSE_COMMAND = 'unpause'
+PARTICIPATE_COMMAND = 'participate'
+PAUSE_WEEK_COMMAND = 'pause_week'
+PAUSE_MONTH_COMMAND = 'pause_month'
 
+CONFIRM_PAIR_COMMAND = 'confirm_pair'
+BREAK_PAIR_COMMAND = 'break_pair'
+
+FEEDBACK_COMMAND = 'feedback'
 
 COMMAND_DESCRIPTIONS = {
     EDIT_INTRO_COMMAND: 'поменять анкету',
@@ -321,8 +326,14 @@ COMMAND_DESCRIPTIONS = {
     CANCEL_COMMAND: 'отменить',
     EMPTY_COMMAND: 'оставить пустым',
 
-    PAUSE_COMMAND: 'не участвовать во встречах',
-    UNPAUSE_COMMAND: 'снова участвовать',
+    PARTICIPATE_COMMAND: 'участвовать во встречах',
+    PAUSE_WEEK_COMMAND: 'пауза на неделю',
+    PAUSE_MONTH_COMMAND: 'пауза на месяц',
+
+    CONFIRM_PAIR_COMMAND: 'договорились о встрече',
+    BREAK_PAIR_COMMAND: 'не договориль/собеседник не отвечает',
+
+    FEEDBACK_COMMAND: 'как прошла встреча',
 }
 
 
@@ -336,16 +347,25 @@ def command_description(command):
 
 
 START_TEXT = f'''Бот раз в неделю предлагает встречу со случайным \
-собеседником из чатика @natural_language_processing.
 собеседником из чатика @natural_language_processing. Нетворкинг \
 в формате <a href="https://random-coffee.ru">Random Coffee</a>.
 
-В понедельник бот присылает пару. В воскресенье спрашивает будешь ли \
-участвовать на следующей неделе.
+Встречи начнутся в понедельник 22 августа. Пока заполни, пожалуйста, \
+короткую анкету /{EDIT_INTRO_COMMAND}.
 
 {command_description(EDIT_INTRO_COMMAND)}
-{command_description(PAUSE_COMMAND)}
-{command_description(UNPAUSE_COMMAND)}
+{command_description(EDIT_NAME_COMMAND)}
+{command_description(EDIT_CITY_COMMAND)}
+{command_description(EDIT_LINKS_COMMAND)}
+
+{command_description(PARTICIPATE_COMMAND)}
+{command_description(PAUSE_WEEK_COMMAND)}
+{command_description(PAUSE_MONTH_COMMAND)}
+
+{command_description(CONFIRM_PAIR_COMMAND)}
+{command_description(BREAK_PAIR_COMMAND)}
+
+{command_description(FEEDBACK_COMMAND)}
 '''
 
 
@@ -391,6 +411,9 @@ TOP_CITIES = [
     'Лондон',
     'Берлин',
 ]
+
+STUB_TEXT = '''Встречи начнутся в понедельник 22 августа. Пока \
+заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}.'''
 
 
 ######
@@ -502,6 +525,15 @@ async def handle_edit_states(context, message):
     )
 
 
+######
+#  STUB
+#####
+
+
+async def handle_stub(context, message):
+    await message.answer(text=STUB_TEXT)
+
+
 #######
 #   SETUP
 ######
@@ -535,6 +567,18 @@ def setup_handlers(context):
             EDIT_NAME_STATE,
             EDIT_CITY_STATE,
             EDIT_LINKS_STATE,
+        ]
+    )
+
+    context.dispatcher.register_message_handler(
+        context.handle_stub,
+        commands=[
+            PARTICIPATE_COMMAND,
+            PAUSE_WEEK_COMMAND,
+            PAUSE_MONTH_COMMAND,
+            CONFIRM_PAIR_COMMAND,
+            BREAK_PAIR_COMMAND,
+            FEEDBACK_COMMAND,
         ]
     )
 
@@ -675,6 +719,7 @@ BotContext.handle_edit_name = handle_edit_name
 BotContext.handle_edit_city = handle_edit_city
 BotContext.handle_edit_links = handle_edit_links
 BotContext.handle_edit_states = handle_edit_states
+BotContext.handle_stub = handle_stub
 
 BotContext.setup_middlewares = setup_middlewares
 BotContext.setup_filters = setup_filters
