@@ -659,6 +659,7 @@ class BotContext:
         self.bot = Bot(
             token=BOT_TOKEN,
             parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
         )
         self.dispatcher = Dispatcher(self.bot)
         self.db = DB()
