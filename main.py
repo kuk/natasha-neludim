@@ -92,7 +92,7 @@ EDIT_LINKS_STATE = 'edit_links'
 
 @dataclass
 class Intro:
-    name: str
+    name: str = None
     city: str = None
     links: str = None
 
@@ -364,22 +364,21 @@ EDIT_INTRO_TEXT = f'''Имя: {{name}}
 {command_description(EMPTY_COMMAND)}
 '''
 
-EDIT_NAME_TEXT = '''Напиши свое настоящее имя. Собеседник будет знать, \
-как к тебе обращаться. Если оставить пустым, бот использует имя из \
-Телеграма.'''
+EDIT_NAME_TEXT = '''Напиши настоящее имя. Собеседник поймёт, как \
+к тебе обращаться.'''
 
-EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Обсудите с собеседником \
-оффлайн встречу, если живете в одном городе.'''
+EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Собеседник \
+поймет предлагать оффлайн встречу или нет.'''
 
 EDIT_LINKS_TEXT = '''Накидай ссылок про себя: блог, твиттер, фейсбук, \
-канал, подкаст. Поможет собеседнику подготовиться к встрече, понять чем ты \
-занимаешься, найти темы для общения.
+канал, подкаст. Собеседник поймёт чем ты занимаешься, о чём интересно \
+спросить. Снимает неловкость в начале разговора.
 
 Примеры
-<code>http://lab.alexkuk.ru, https://github.com/kuk, \
-https://habr.com/ru/users/alexanderkuk/</code>
-<code>https://www.linkedin.com/in/alexkuk/, https://vk.com/alexkuk</code>
-<code>http://val.maly.hk</code>'''
+- http://lab.alexkuk.ru, https://github.com/kuk, \
+https://habr.com/ru/users/alexanderkuk/
+- https://www.linkedin.com/in/alexkuk/, https://vk.com/alexkuk
+- http://val.maly.hk'''
 
 TOP_CITIES = [
     'Москва',
