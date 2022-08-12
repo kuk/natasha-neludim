@@ -337,6 +337,8 @@ def command_description(command):
 
 START_TEXT = f'''Бот раз в неделю предлагает встречу со случайным \
 собеседником из чатика @natural_language_processing.
+собеседником из чатика @natural_language_processing. Нетворкинг \
+в формате <a href="https://random-coffee.ru">Random Coffee</a>.
 
 В понедельник бот присылает пару. В воскресенье спрашивает будешь ли \
 участвовать на следующей неделе.
