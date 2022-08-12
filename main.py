@@ -100,6 +100,7 @@ class Intro:
 @dataclass
 class User:
     user_id: int
+    username: str = None
     state: str = None
     intro: Intro = None
 
@@ -399,6 +400,7 @@ async def handle_start(context, message):
     if not user:
         user = User(
             user_id=message.from_user.id,
+            username=message.from_user.username,
             intro=Intro(
                 name=message.from_user.full_name,
             )
@@ -421,7 +423,7 @@ async def handle_start(context, message):
 
 def format_edit_intro_text(user):
     return EDIT_INTRO_TEXT.format(
-        name=user.intro.name,
+        name=format_empty(user.intro.name),
         city=format_empty(user.intro.city),
         links=format_empty(user.intro.links)
     )
@@ -437,7 +439,15 @@ async def handle_edit_name(context, message):
     user = context.user.get()
     user.state = EDIT_NAME_STATE
 
-    await message.answer(text=EDIT_NAME_TEXT)
+    markup = None
+    if not user.intro.name and message.from_user.full_name:
+        markup = ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(message.from_user.full_name)
+
+    await message.answer(
+        text=EDIT_NAME_TEXT,
+        reply_markup=markup
+    )
 
 
 async def handle_edit_city(context, message):
@@ -475,10 +485,7 @@ async def handle_edit_states(context, message):
             value = None
 
         if user.state == EDIT_NAME_STATE:
-            if value is None:
-                value = message.from_user.full_name
             user.intro.name = value
-
         elif user.state == EDIT_CITY_STATE:
             user.intro.city = value
         elif user.state == EDIT_LINKS_STATE:
