@@ -331,7 +331,7 @@ COMMAND_DESCRIPTIONS = {
     PAUSE_MONTH_COMMAND: 'пауза на месяц',
 
     CONFIRM_PAIR_COMMAND: 'договорились о встрече',
-    BREAK_PAIR_COMMAND: 'не договориль/собеседник не отвечает',
+    BREAK_PAIR_COMMAND: 'не договориль/не отвечает',
 
     FEEDBACK_COMMAND: 'как прошла встреча',
 }
@@ -346,9 +346,8 @@ def command_description(command):
     return f'/{command} — {COMMAND_DESCRIPTIONS[command]}'
 
 
-START_TEXT = f'''Бот раз в неделю предлагает встречу со случайным \
-собеседником из чатика @natural_language_processing. Нетворкинг \
-в формате <a href="https://random-coffee.ru">Random Coffee</a>.
+START_TEXT = f'''Бот организует random coffee для сообщества \
+@natural_language_processing.
 
 Встречи начнутся в понедельник 22 августа. Пока заполни, пожалуйста, \
 короткую анкету /{EDIT_INTRO_COMMAND}.

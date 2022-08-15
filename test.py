@@ -142,7 +142,7 @@ async def test_bot_start(context):
     await process_update(context, START_JSON)
     assert match_trace(context.bot.trace, [
         ['setMyCommands', '{"commands"'],
-        ['sendMessage', '{"chat_id": 113947584, "text": "Бот раз в неделю']
+        ['sendMessage', '{"chat_id": 113947584, "text": "Бот организует']
     ])
     assert context.db.users == [User(user_id=113947584, username='alexkuk', intro=Intro(name='Alexander Kukushkin'))]
 

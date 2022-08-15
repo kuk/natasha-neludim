@@ -1,5 +1,5 @@
 
-# Бот для чата @natural_language_processing. Аналог <a href="https://random-coffee.ru">Рендом Кофе</a>
+# Бот организует random coffee для сообщества @natural_language_processing
 
 ## Разработка
 
