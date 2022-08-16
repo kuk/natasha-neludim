@@ -334,7 +334,6 @@ COMMAND_DESCRIPTIONS = {
 
     CONFIRM_PAIR_COMMAND: 'договорились о встрече',
     BREAK_PAIR_COMMAND: 'не договориль/не отвечает',
-
     FEEDBACK_COMMAND: 'как прошла встреча',
 }
 
@@ -352,7 +351,8 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 @natural_language_processing.
 
 Встречи начнутся в понедельник 22 августа. Пока заполни, пожалуйста, \
-короткую анкету /{EDIT_INTRO_COMMAND}.
+короткую анкету /{EDIT_INTRO_COMMAND}. Заходи в закрытый чат для \
+первых участников https://t.me/+cNnNahFlZ_gzZDYy.
 
 {command_description(EDIT_INTRO_COMMAND)}
 {command_description(EDIT_NAME_COMMAND)}
@@ -365,8 +365,9 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 
 {command_description(CONFIRM_PAIR_COMMAND)}
 {command_description(BREAK_PAIR_COMMAND)}
-
 {command_description(FEEDBACK_COMMAND)}
+
+{command_description(START_COMMAND)}
 '''
 
 
@@ -414,7 +415,9 @@ TOP_CITIES = [
 ]
 
 STUB_TEXT = f'''Встречи начнутся в понедельник 22 августа. Пока \
-заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}.'''
+заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}. \
+Заходи в закрытый чат для первых участников \
+https://t.me/+cNnNahFlZ_gzZDYy.'''
 
 
 ######
