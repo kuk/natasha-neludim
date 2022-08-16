@@ -318,6 +318,8 @@ BREAK_PAIR_COMMAND = 'break_pair'
 FEEDBACK_COMMAND = 'feedback'
 
 COMMAND_DESCRIPTIONS = {
+    START_COMMAND: 'интро + список команд',
+
     EDIT_INTRO_COMMAND: 'поменять анкету',
     EDIT_NAME_COMMAND: 'поменять имя',
     EDIT_CITY_COMMAND: 'поменять город',
