@@ -10,6 +10,8 @@ import pytest
 from aiogram.types import Update
 
 from main import (
+    Datetime,
+
     Bot,
     Dispatcher,
 
@@ -18,7 +20,9 @@ from main import (
 
     User,
     Intro,
+    MONTH,
 )
+
 
 ######
 #
@@ -101,6 +105,9 @@ class FakeBotContext(BotContext):
         self.dispatcher = Dispatcher(self.bot)
         self.db = FakeDB()
 
+    def now(self):
+        return Datetime.fromisoformat('2022-01-01 10:00')
+
 
 @pytest.fixture(scope='function')
 def context():
@@ -135,6 +142,11 @@ def match_trace(trace, etalon):
     return True
 
 
+######
+#  START
+######
+
+
 START_JSON = '{"message": {"message_id": 2, "from": {"id": 113947584, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "chat": {"id": 113947584, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1659800990, "text": "/start", "entities": [{"type": "bot_command", "offset": 0, "length": 6}]}}'
 
 
@@ -145,6 +157,11 @@ async def test_bot_start(context):
         ['sendMessage', '{"chat_id": 113947584, "text": "Бот организует']
     ])
     assert context.db.users == [User(user_id=113947584, username='alexkuk', intro=Intro(name='Alexander Kukushkin'))]
+
+
+#######
+#  INTRO
+######
 
 
 async def test_bot_edit_name(context):
@@ -212,8 +229,45 @@ async def test_bot_cancel_edit(context):
     assert context.db.users == [User(user_id=113947584, intro=Intro(name='A K', links='vk.com/alexkuk'))]
 
 
-async def test_bot_stub(context):
+#######
+#   PARTICIPATE/PAUSE
+#######
+
+
+async def test_bot_participate(context):
+    context.db.users = [User(user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/participate'))
+    
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Бот подберёт пару'],
+    ])
+
+    user = context.db.users[0]
+    assert user.participate_date == context.now()
+    assert user.pause_date is None
+
+
+async def test_bot_pause(context):
+    context.db.users = [User(user_id=113947584)]
+    await process_update(context, START_JSON.replace('/start', '/pause_month'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Поставил встречи на паузу'],
+    ])
+
+    user = context.db.users[0]
+    assert user.participate_date == None
+    assert user.pause_date == context.now()
+    assert user.pause_period == MONTH
+
+
+#######
+#   OTHER/STUB
+#######
+
+
+async def test_bot_stub(context):
+    await process_update(context, START_JSON.replace('/start', '/break_pair'))
     assert match_trace(context.bot.trace, [
         ['sendMessage', '{"chat_id": 113947584, "text"']
     ])

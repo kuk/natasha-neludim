@@ -7,6 +7,7 @@ from dataclasses import (
     fields,
     is_dataclass,
 )
+from datetime import datetime as Datetime
 from contextlib import AsyncExitStack
 from contextvars import ContextVar
 
@@ -90,6 +91,9 @@ EDIT_CITY_STATE = 'edit_city'
 EDIT_LINKS_STATE = 'edit_links'
 EDIT_ABOUT_STATE = 'edit_about'
 
+WEEK = 'week'
+MONTH = 'month'
+
 
 @dataclass
 class Intro:
@@ -104,6 +108,11 @@ class User:
     user_id: int
     username: str = None
     state: str = None
+
+    participate_date: Datetime = None
+    pause_date: Datetime = None
+    pause_period: str = None
+
     intro: Intro = None
 
 
@@ -194,7 +203,7 @@ async def dynamo_delete(client, table, key_name, key_type, key_value):
 def dynamo_type(annot):
     if annot == int:
         return N
-    elif annot == str:
+    elif annot in (str, Datetime):
         return S
     elif is_dataclass(annot):
         return M
@@ -205,6 +214,8 @@ def dynamo_parse_value(value, annot):
         return int(value)
     elif annot == str:
         return value
+    elif annot == Datetime:
+        return Datetime.fromisoformat(value)
     elif is_dataclass(annot):
         return dynamo_parse_item(value, annot)
 
@@ -214,6 +225,8 @@ def dynamo_format_value(value, annot):
         return str(value)
     elif annot == str:
         return value
+    elif annot == Datetime:
+        return value.isoformat()
     elif is_dataclass(annot):
         return dynamo_format_item(value)
 
@@ -440,6 +453,10 @@ TOP_CITIES = [
     'Берлин',
 ]
 
+PARTICIPATE_TEXT = 'Бот подберёт пару, пришлёт контакт собеседника.'
+
+PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет тебя беспокоить.'
+
 STUB_TEXT = f'''Встречи начнутся в понедельник 22 августа. Пока заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}. Заходи в закрытый чат для первых участников https://t.me/+cNnNahFlZ_gzZDYy.'''
 
 
@@ -565,17 +582,41 @@ async def handle_edit_states(context, message):
 
 
 ######
-#  OTHER
+#  PARTICIPATE/PAUSE
+#######
+
+
+async def handle_participate(context, message):
+    user = context.user.get()
+    user.participate_date = context.now()
+    user.pause_date = None
+    user.pause_period = None
+
+    await message.answer(text=PARTICIPATE_TEXT)
+
+
+async def handle_pause(context, message):
+    user = context.user.get()
+
+    user.participate_date = None
+    user.pause_date = context.now()
+
+    command = parse_command(message.text)
+    if command == PAUSE_WEEK_COMMAND:
+        user.pause_period = WEEK
+    elif command == PAUSE_MONTH_COMMAND:
+        user.pause_period = MONTH
+
+    await message.answer(text=PAUSE_TEXT)
+
+
+######
+#  OTHER/STUB
 ########
 
 
 async def handle_other(context, message):
     await message.answer(text=START_TEXT)
-
-
-######
-#  STUB
-#####
 
 
 async def handle_stub(context, message):
@@ -624,17 +665,25 @@ def setup_handlers(context):
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_stub,
+        context.handle_participate,
+        commands=PARTICIPATE_COMMAND
+    )
+    context.dispatcher.register_message_handler(
+        context.handle_pause,
         commands=[
-            PARTICIPATE_COMMAND,
             PAUSE_WEEK_COMMAND,
             PAUSE_MONTH_COMMAND,
+        ]
+    )
+
+    context.dispatcher.register_message_handler(
+        context.handle_stub,
+        commands=[
             CONFIRM_PAIR_COMMAND,
             BREAK_PAIR_COMMAND,
             PAIR_FEEDBACK_COMMAND,
         ]
     )
-
     context.dispatcher.register_message_handler(
         context.handle_other
     )
@@ -769,6 +818,9 @@ class BotContext:
 
         self.user = ContextVar(USER_VAR)
 
+    def now(self):
+        return Datetime.now()
+
 
 BotContext.handle_start = handle_start
 BotContext.handle_edit_intro = handle_edit_intro
@@ -777,6 +829,8 @@ BotContext.handle_edit_city = handle_edit_city
 BotContext.handle_edit_links = handle_edit_links
 BotContext.handle_edit_about = handle_edit_about
 BotContext.handle_edit_states = handle_edit_states
+BotContext.handle_participate = handle_participate
+BotContext.handle_pause = handle_pause
 BotContext.handle_stub = handle_stub
 BotContext.handle_other = handle_other
 
