@@ -88,6 +88,7 @@ def obj_annots(obj):
 EDIT_NAME_STATE = 'edit_name'
 EDIT_CITY_STATE = 'edit_city'
 EDIT_LINKS_STATE = 'edit_links'
+EDIT_ABOUT_STATE = 'edit_about'
 
 
 @dataclass
@@ -95,6 +96,7 @@ class Intro:
     name: str = None
     city: str = None
     links: str = None
+    about: str = None
 
 
 @dataclass
@@ -304,6 +306,7 @@ EDIT_INTRO_COMMAND = 'edit_intro'
 EDIT_NAME_COMMAND = 'edit_name'
 EDIT_CITY_COMMAND = 'edit_city'
 EDIT_LINKS_COMMAND = 'edit_links'
+EDIT_ABOUT_COMMAND = 'edit_about'
 
 CANCEL_COMMAND = 'cancel'
 EMPTY_COMMAND = 'empty'
@@ -324,6 +327,7 @@ COMMAND_DESCRIPTIONS = {
     EDIT_NAME_COMMAND: 'поменять имя',
     EDIT_CITY_COMMAND: 'поменять город',
     EDIT_LINKS_COMMAND: 'поменять ссылки',
+    EDIT_ABOUT_COMMAND: 'поменять "о себе"',
 
     CANCEL_COMMAND: 'отменить',
     EMPTY_COMMAND: 'оставить пустым',
@@ -358,6 +362,7 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 {command_description(EDIT_NAME_COMMAND)}
 {command_description(EDIT_CITY_COMMAND)}
 {command_description(EDIT_LINKS_COMMAND)}
+{command_description(EDIT_ABOUT_COMMAND)}
 
 {command_description(PARTICIPATE_COMMAND)}
 {command_description(PAUSE_WEEK_COMMAND)}
@@ -380,10 +385,12 @@ def format_empty(value):
 EDIT_INTRO_TEXT = f'''Имя: {{name}}
 Город: {{city}}
 Ссылки: {{links}}
+О себе: {{about}}
 
 {command_description(EDIT_NAME_COMMAND)}
 {command_description(EDIT_CITY_COMMAND)}
 {command_description(EDIT_LINKS_COMMAND)}
+{command_description(EDIT_ABOUT_COMMAND)}
 
 {command_description(CANCEL_COMMAND)}
 {command_description(EMPTY_COMMAND)}
@@ -404,6 +411,28 @@ EDIT_LINKS_TEXT = '''Накидай ссылок про себя: блог, тв
 https://habr.com/ru/users/alexanderkuk/
 - https://www.linkedin.com/in/alexkuk/, https://vk.com/alexkuk
 - http://val.maly.hk'''
+
+EDIT_ABOUT_TEXT = '''Напиши о себе. Собеседник поймёт чем ты занимаешься, \
+о чём интересно спросить. Снимает неловкость в начале разговора.
+
+Что писать?
+- Где учился?
+- Где успел поработать? Чем занимался, самое важное/удивительное?
+- Сфера интересов в NLP?
+- Личное, чем занимаешь кроме работы?
+
+Например
+Закончил ШАД, работал в Яндексе в поиске. Делал так чтобы яндексовым \
+Мап Редьюсом было удобно пользоваться \
+https://habr.com/ru/company/yandex/blog/332688/. Считал сколько именно \
+порно-запросов приходит в месяц \
+https://yandex.ru/company/researches/2017/classifier.
+
+Автор проекта Наташа https://github.com/natasha. Работаю в своей Лабе \
+https://lab.alexkuk.ru, адаптирую Наташу под задачи клиентов.
+
+Живу в Москве в Крылатском. У нас тут мекка велоспорта: самый большой \
+в мире велотрек и лютая велотрасса. Умею сидеть на колесе и сдавать смену.'''
 
 TOP_CITIES = [
     'Москва',
@@ -455,7 +484,8 @@ def format_edit_intro_text(user):
     return EDIT_INTRO_TEXT.format(
         name=format_empty(user.intro.name),
         city=format_empty(user.intro.city),
-        links=format_empty(user.intro.links)
+        links=format_empty(user.intro.links),
+        about=format_empty(user.intro.about)
     )
 
 
@@ -501,15 +531,24 @@ async def handle_edit_links(context, message):
     await message.answer(text=EDIT_LINKS_TEXT)
 
 
-def command_text(command):
-    return f'/{command}'
+async def handle_edit_about(context, message):
+    user = context.user.get()
+    user.state = EDIT_ABOUT_STATE
+
+    await message.answer(text=EDIT_ABOUT_TEXT)
+
+
+def parse_command(text):
+    if text.startswith('/'):
+        return text.lstrip('/')
 
 
 async def handle_edit_states(context, message):
     user = context.user.get()
 
-    if message.text != command_text(CANCEL_COMMAND):
-        if message.text != command_text(EMPTY_COMMAND):
+    command = parse_command(message.text)
+    if command != CANCEL_COMMAND:
+        if command != EMPTY_COMMAND:
             value = message.text
         else:
             value = None
@@ -520,6 +559,8 @@ async def handle_edit_states(context, message):
             user.intro.city = value
         elif user.state == EDIT_LINKS_STATE:
             user.intro.links = value
+        elif user.state == EDIT_ABOUT_STATE:
+            user.intro.about = value
 
     user.state = None
     text = format_edit_intro_text(user)
@@ -566,11 +607,16 @@ def setup_handlers(context):
         commands=EDIT_LINKS_COMMAND,
     )
     context.dispatcher.register_message_handler(
+        context.handle_edit_about,
+        commands=EDIT_ABOUT_COMMAND,
+    )
+    context.dispatcher.register_message_handler(
         context.handle_edit_states,
         user_states=[
             EDIT_NAME_STATE,
             EDIT_CITY_STATE,
             EDIT_LINKS_STATE,
+            EDIT_ABOUT_STATE,
         ]
     )
 
@@ -722,6 +768,7 @@ BotContext.handle_edit_intro = handle_edit_intro
 BotContext.handle_edit_name = handle_edit_name
 BotContext.handle_edit_city = handle_edit_city
 BotContext.handle_edit_links = handle_edit_links
+BotContext.handle_edit_about = handle_edit_about
 BotContext.handle_edit_states = handle_edit_states
 BotContext.handle_stub = handle_stub
 

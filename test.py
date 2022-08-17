@@ -185,6 +185,18 @@ async def test_bot_edit_links(context):
     assert context.db.users[0].intro.links == 'vk.com/alexkuk'
 
 
+async def test_bot_edit_about(context):
+    context.db.users = [User(user_id=113947584, intro=Intro())]
+    await process_update(context, START_JSON.replace('/start', '/edit_about'))
+    await process_update(context, START_JSON.replace('/start', 'Закончил ШАД, работал в Яндексе'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '{"chat_id": 113947584, "text": "Напиши о себе'],
+        ['sendMessage', 'Закончил ШАД, работал в Яндексе'],
+    ])
+    assert context.db.users[0].intro.about == 'Закончил ШАД, работал в Яндексе'
+
+
 async def test_bot_empty_edit(context):
     context.db.users = [User(user_id=113947584, intro=Intro(name='A K'))]
     await process_update(context, START_JSON.replace('/start', '/edit_name'))
