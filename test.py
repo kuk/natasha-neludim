@@ -237,7 +237,7 @@ async def test_bot_cancel_edit(context):
 async def test_bot_participate(context):
     context.db.users = [User(user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/participate'))
-    
+
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Бот подберёт пару'],
     ])
@@ -256,7 +256,7 @@ async def test_bot_pause(context):
     ])
 
     user = context.db.users[0]
-    assert user.participate_date == None
+    assert user.participate_date is None
     assert user.pause_date == context.now()
     assert user.pause_period == MONTH
 
