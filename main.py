@@ -378,7 +378,7 @@ def command_description(command):
 
 START_TEXT = f'''Бот организует random coffee для сообщества @natural_language_processing.
 
-Встречи начнутся в понедельник 22 августа. Пока заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}. Заходи в закрытый чат для первых участников https://t.me/+cNnNahFlZ_gzZDYy.
+Заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}. Заходи в закрытый чат для первых участников https://t.me/+cNnNahFlZ_gzZDYy.
 
 {command_description(EDIT_INTRO_COMMAND)}
 {command_description(EDIT_NAME_COMMAND)}
