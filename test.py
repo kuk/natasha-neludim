@@ -217,3 +217,10 @@ async def test_bot_stub(context):
     assert match_trace(context.bot.trace, [
         ['sendMessage', '{"chat_id": 113947584, "text"']
     ])
+
+
+async def test_bot_other(context):
+    await process_update(context, START_JSON.replace('/start', 'abc'))
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '{"chat_id": 113947584, "text": "Бот организует']
+    ])

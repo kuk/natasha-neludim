@@ -570,6 +570,15 @@ async def handle_edit_states(context, message):
 
 
 ######
+#  OTHER
+########
+
+
+async def handle_other(context, message):
+    await message.answer(text=START_TEXT)
+
+
+######
 #  STUB
 #####
 
@@ -629,6 +638,10 @@ def setup_handlers(context):
             BREAK_PAIR_COMMAND,
             PAIR_FEEDBACK_COMMAND,
         ]
+    )
+
+    context.dispatcher.register_message_handler(
+        context.handle_other
     )
 
 
@@ -770,6 +783,7 @@ BotContext.handle_edit_links = handle_edit_links
 BotContext.handle_edit_about = handle_edit_about
 BotContext.handle_edit_states = handle_edit_states
 BotContext.handle_stub = handle_stub
+BotContext.handle_other = handle_other
 
 BotContext.setup_middlewares = setup_middlewares
 BotContext.setup_filters = setup_filters
