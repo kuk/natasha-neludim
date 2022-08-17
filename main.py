@@ -317,8 +317,7 @@ PAUSE_MONTH_COMMAND = 'pause_month'
 
 CONFIRM_PAIR_COMMAND = 'confirm_pair'
 BREAK_PAIR_COMMAND = 'break_pair'
-
-FEEDBACK_COMMAND = 'feedback'
+PAIR_FEEDBACK_COMMAND = 'pair_feedback'
 
 COMMAND_DESCRIPTIONS = {
     START_COMMAND: 'интро + список команд',
@@ -338,7 +337,7 @@ COMMAND_DESCRIPTIONS = {
 
     CONFIRM_PAIR_COMMAND: 'договорились о встрече',
     BREAK_PAIR_COMMAND: 'не договориль/не отвечает',
-    FEEDBACK_COMMAND: 'как прошла встреча',
+    PAIR_FEEDBACK_COMMAND: 'как прошла встреча',
 }
 
 
@@ -370,7 +369,7 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 
 {command_description(CONFIRM_PAIR_COMMAND)}
 {command_description(BREAK_PAIR_COMMAND)}
-{command_description(FEEDBACK_COMMAND)}
+{command_description(PAIR_FEEDBACK_COMMAND)}
 
 {command_description(START_COMMAND)}
 '''
@@ -628,7 +627,7 @@ def setup_handlers(context):
             PAUSE_MONTH_COMMAND,
             CONFIRM_PAIR_COMMAND,
             BREAK_PAIR_COMMAND,
-            FEEDBACK_COMMAND,
+            PAIR_FEEDBACK_COMMAND,
         ]
     )
 
