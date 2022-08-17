@@ -381,7 +381,8 @@ def format_empty(value):
 EDIT_INTRO_TEXT = f'''Имя: {{name}}
 Город: {{city}}
 Ссылки: {{links}}
-О себе: {{about}}
+О себе:
+{{about}}
 
 {command_description(EDIT_NAME_COMMAND)}
 {command_description(EDIT_CITY_COMMAND)}
