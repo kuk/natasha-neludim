@@ -149,6 +149,13 @@ S = 'S'
 M = 'M'
 
 
+async def dynamo_scan(client, table):
+    response = await client.scan(
+        TableName=table
+    )
+    return response['Items']
+
+
 async def dynamo_put(client, table, item):
     await client.put_item(
         TableName=table,
@@ -244,6 +251,11 @@ USERS_TABLE = 'users'
 USER_ID_KEY = 'user_id'
 
 
+async def read_users(db):
+    items = await dynamo_scan(db.client, USERS_TABLE)
+    return [dynamo_parse_item(_, User) for _ in items]
+
+
 async def put_user(db, user):
     item = dynamo_format_item(user)
     await dynamo_put(db.client, USERS_TABLE, item)
@@ -283,6 +295,7 @@ class DB:
         await self.exit_stack.aclose()
 
 
+DB.read_users = read_users
 DB.put_user = put_user
 DB.get_user = get_user
 DB.delete_user = delete_user
