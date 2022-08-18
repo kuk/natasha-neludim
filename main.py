@@ -819,7 +819,7 @@ class BotContext:
         self.user = ContextVar(USER_VAR)
 
     def now(self):
-        return Datetime.now()
+        return Datetime.utcnow()
 
 
 BotContext.handle_start = handle_start
