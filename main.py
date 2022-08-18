@@ -209,7 +209,7 @@ def dynamo_type(annot):
         return M
 
 
-def dynamo_parse_value(value, annot):
+def dynamo_deserialize_value(value, annot):
     if annot == int:
         return int(value)
     elif annot == str:
@@ -217,10 +217,10 @@ def dynamo_parse_value(value, annot):
     elif annot == Datetime:
         return Datetime.fromisoformat(value)
     elif is_dataclass(annot):
-        return dynamo_parse_item(value, annot)
+        return dynamo_deserialize_item(value, annot)
 
 
-def dynamo_format_value(value, annot):
+def dynamo_serialize_value(value, annot):
     if annot == int:
         return str(value)
     elif annot == str:
@@ -228,28 +228,28 @@ def dynamo_format_value(value, annot):
     elif annot == Datetime:
         return value.isoformat()
     elif is_dataclass(annot):
-        return dynamo_format_item(value)
+        return dynamo_serialize_item(value)
 
 
-def dynamo_parse_item(item, cls):
+def dynamo_deserialize_item(item, cls):
     kwargs = {}
     for name, annot in obj_annots(cls):
         if name in item:
             type = dynamo_type(annot)
             value = item[name][type]
-            value = dynamo_parse_value(value, annot)
+            value = dynamo_deserialize_value(value, annot)
         else:
             value = None
         kwargs[name] = value
     return cls(**kwargs)
 
 
-def dynamo_format_item(obj):
+def dynamo_serialize_item(obj):
     item = {}
     for name, annot in obj_annots(obj):
         value = getattr(obj, name)
         if value is not None:
-            value = dynamo_format_value(value, annot)
+            value = dynamo_serialize_value(value, annot)
             type = dynamo_type(annot)
             item[name] = {type: value}
     return item
@@ -266,11 +266,11 @@ USER_ID_KEY = 'user_id'
 
 async def read_users(db):
     items = await dynamo_scan(db.client, USERS_TABLE)
-    return [dynamo_parse_item(_, User) for _ in items]
+    return [dynamo_deserialize_item(_, User) for _ in items]
 
 
 async def put_user(db, user):
-    item = dynamo_format_item(user)
+    item = dynamo_serialize_item(user)
     await dynamo_put(db.client, USERS_TABLE, item)
 
 
@@ -281,7 +281,7 @@ async def get_user(db, user_id):
     )
     if not item:
         return
-    return dynamo_parse_item(item, User)
+    return dynamo_deserialize_item(item, User)
 
 
 async def delete_user(db, user_id):
