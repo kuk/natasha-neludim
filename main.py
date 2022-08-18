@@ -7,7 +7,10 @@ from dataclasses import (
     fields,
     is_dataclass,
 )
-from datetime import datetime as Datetime
+from datetime import (
+    datetime as Datetime,
+    timedelta as Timedelta
+)
 from contextlib import AsyncExitStack
 from contextvars import ContextVar
 
@@ -115,6 +118,44 @@ class User:
 
     intro: Intro = None
 
+    partner_user_id: int = None
+
+
+def user_mention(user):
+    if user.username:
+        return f'@{user.username}'
+    elif user.intro.name:
+        return user.intro.name
+    return user.user_id
+
+
+def user_url(user_id):
+    return f'tg://user?id={user_id}'
+
+
+#######
+#  CONTACT
+######
+
+
+@dataclass
+class Contact:
+    week_id: int
+    user_id: int
+    partner_user_id: int
+
+    is_break: bool = None
+    is_confirm: bool = None
+    feedback: int = None
+
+    @property
+    def key(self):
+        return contact_key(
+            self.week_id,
+            self.user_id,
+            self.partner_user_id
+        )
+
 
 ######
 #
@@ -151,11 +192,6 @@ async def dynamo_client():
 ######
 #  OPS
 #####
-
-
-N = 'N'
-S = 'S'
-M = 'M'
 
 
 async def dynamo_scan(client, table):
@@ -200,8 +236,16 @@ async def dynamo_delete(client, table, key_name, key_type, key_value):
 ####
 
 
+BOOL = 'BOOL'
+N = 'N'
+S = 'S'
+M = 'M'
+
+
 def dynamo_type(annot):
-    if annot == int:
+    if annot == bool:
+        return BOOL
+    elif annot == int:
         return N
     elif annot in (str, Datetime):
         return S
@@ -210,7 +254,9 @@ def dynamo_type(annot):
 
 
 def dynamo_deserialize_value(value, annot):
-    if annot == int:
+    if annot == bool:
+        return value
+    elif annot == int:
         return int(value)
     elif annot == str:
         return value
@@ -221,7 +267,9 @@ def dynamo_deserialize_value(value, annot):
 
 
 def dynamo_serialize_value(value, annot):
-    if annot == int:
+    if annot == bool:
+        return value
+    elif annot == int:
         return str(value)
     elif annot == str:
         return value
@@ -255,13 +303,39 @@ def dynamo_serialize_item(obj):
     return item
 
 
+#####
+#  KEY
+######
+
+
+# On DynamoDB partition key
+# https://aws.amazon.com/ru/blogs/database/choosing-the-right-dynamodb-partition-key/
+
+
+def dynamo_key(parts):
+    return '#'.join(
+        str(_) for _ in parts
+    )
+
+
+def contact_key(week_id, user_id, partner_user_id):
+    return dynamo_key([
+        week_id,
+        user_id,
+        partner_user_id
+    ])
+
+
 ######
 #   READ/WRITE
 ######
 
 
 USERS_TABLE = 'users'
-USER_ID_KEY = 'user_id'
+USERS_KEY = 'user_id'
+
+CONTACTS_TABLE = 'contacts'
+CONTACTS_KEY = 'key'
 
 
 async def read_users(db):
@@ -277,7 +351,7 @@ async def put_user(db, user):
 async def get_user(db, user_id):
     item = await dynamo_get(
         db.client, USERS_TABLE,
-        USER_ID_KEY, N, user_id
+        USERS_KEY, N, user_id
     )
     if not item:
         return
@@ -287,7 +361,35 @@ async def get_user(db, user_id):
 async def delete_user(db, user_id):
     await dynamo_delete(
         db.client, USERS_TABLE,
-        USER_ID_KEY, N, user_id
+        USERS_KEY, N, user_id
+    )
+
+
+async def read_contacts(db):
+    items = await dynamo_scan(db.client, CONTACTS_TABLE)
+    return [dynamo_deserialize_item(_, Contact) for _ in items]
+
+
+async def put_contact(db, contact):
+    item = dynamo_serialize_item(contact)
+    item[CONTACTS_KEY] = {S: contact.key}
+    await dynamo_put(db.client, CONTACTS_TABLE, item)
+
+
+async def get_contact(db, key):
+    item = await dynamo_get(
+        db.client, CONTACTS_TABLE,
+        CONTACTS_KEY, S, key
+    )
+    if not item:
+        return
+    return dynamo_deserialize_item(item, Contact)
+
+
+async def delete_contact(db, key):
+    await dynamo_delete(
+        db.client, CONTACTS_TABLE,
+        CONTACTS_KEY, S, key
     )
 
 
@@ -312,6 +414,11 @@ DB.read_users = read_users
 DB.put_user = put_user
 DB.get_user = get_user
 DB.delete_user = delete_user
+
+DB.read_contacts = read_contacts
+DB.put_contact = put_contact
+DB.get_contact = get_contact
+DB.delete_contact = delete_contact
 
 
 #####
@@ -341,9 +448,10 @@ PARTICIPATE_COMMAND = 'participate'
 PAUSE_WEEK_COMMAND = 'pause_week'
 PAUSE_MONTH_COMMAND = 'pause_month'
 
-CONFIRM_PAIR_COMMAND = 'confirm_pair'
-BREAK_PAIR_COMMAND = 'break_pair'
-PAIR_FEEDBACK_COMMAND = 'pair_feedback'
+SHOW_CONTACT_COMMAND = 'show_contact'
+CONFIRM_CONTACT_COMMAND = 'confirm_contact'
+BREAK_CONTACT_COMMAND = 'break_contact'
+CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
 
 COMMAND_DESCRIPTIONS = {
     START_COMMAND: 'интро + список команд',
@@ -361,9 +469,10 @@ COMMAND_DESCRIPTIONS = {
     PAUSE_WEEK_COMMAND: 'пауза на неделю',
     PAUSE_MONTH_COMMAND: 'пауза на месяц',
 
-    CONFIRM_PAIR_COMMAND: 'договорились о встрече',
-    BREAK_PAIR_COMMAND: 'не договориль/не отвечает',
-    PAIR_FEEDBACK_COMMAND: 'как прошла встреча',
+    SHOW_CONTACT_COMMAND: 'контакты собеседника',
+    CONFIRM_CONTACT_COMMAND: 'договорились о встрече',
+    BREAK_CONTACT_COMMAND: 'не договориль/не отвечает',
+    CONTACT_FEEDBACK_COMMAND: 'как прошла встреча',
 }
 
 
@@ -373,7 +482,7 @@ COMMAND_DESCRIPTIONS = {
 
 
 def command_description(command):
-    return f'/{command} — {COMMAND_DESCRIPTIONS[command]}'
+    return f'/{command} - {COMMAND_DESCRIPTIONS[command]}'
 
 
 START_TEXT = f'''Бот организует random coffee для сообщества @natural_language_processing.
@@ -390,20 +499,19 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 {command_description(PAUSE_WEEK_COMMAND)}
 {command_description(PAUSE_MONTH_COMMAND)}
 
-{command_description(CONFIRM_PAIR_COMMAND)}
-{command_description(BREAK_PAIR_COMMAND)}
-{command_description(PAIR_FEEDBACK_COMMAND)}
+{command_description(SHOW_CONTACT_COMMAND)}
+{command_description(CONFIRM_CONTACT_COMMAND)}
+{command_description(BREAK_CONTACT_COMMAND)}
+{command_description(CONTACT_FEEDBACK_COMMAND)}
 
-{command_description(START_COMMAND)}
-'''
+{command_description(START_COMMAND)}'''
 
 
 def intro_text(intro):
     return f'''Имя: {intro.name or '∅'}
 Город: {intro.city or '∅'}
 Ссылки: {intro.links or '∅'}
-О себе: {intro.about or '∅'}
-'''
+О себе: {intro.about or '∅'}'''
 
 
 def edit_intro_text(intro):
@@ -415,8 +523,7 @@ def edit_intro_text(intro):
 {command_description(EDIT_ABOUT_COMMAND)}
 
 {command_description(CANCEL_COMMAND)}
-{command_description(EMPTY_COMMAND)}
-'''
+{command_description(EMPTY_COMMAND)}'''
 
 
 EDIT_NAME_TEXT = '''Напиши настоящее имя. Собеседник поймёт, как к тебе обращаться.'''
@@ -454,11 +561,26 @@ TOP_CITIES = [
     'Берлин',
 ]
 
-PARTICIPATE_TEXT = 'Ура! Бот подберёт пару, пришлёт контакт собеседника.'
-
+PARTICIPATE_TEXT = 'Ура! Бот подберёт собеседника, пришлёт анкету и контакт.'
 PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет тебя беспокоить.'
 
-PAIR_STUB_TEXT = 'Бот ещё не подобрал тебе пару.'
+NO_CONTACT_TEXT = 'Бот ещё не назначил тебе собеседника.'
+
+
+def show_contact_text(user):
+    return f'''Контакт собеседника в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
+
+{intro_text(user.intro)}
+
+{command_description(CONFIRM_CONTACT_COMMAND)}
+{command_description(BREAK_CONTACT_COMMAND)}
+{command_description(CONTACT_FEEDBACK_COMMAND)}'''
+
+
+CONFIRM_CONTACT_TEXT = f'Ура! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
+BREAK_CONTACT_TEXT = 'Эх, бот подберёт нового собеседника, пришлёт анкету и контакт.'
+
+FEEDBACK_STUB_TEXT = 'Пока бот не умеет принимать фидбек.'
 
 
 ######
@@ -566,6 +688,7 @@ async def handle_edit_states(context, message):
             user.intro.about = value
 
     user.state = None
+
     text = edit_intro_text(user.intro)
     await message.answer(
         text=text,
@@ -580,7 +703,8 @@ async def handle_edit_states(context, message):
 
 async def handle_participate(context, message):
     user = context.user.get()
-    user.participate_date = context.now()
+
+    user.participate_date = context.now.datetime()
     user.pause_date = None
     user.pause_period = None
 
@@ -591,7 +715,7 @@ async def handle_pause(context, message):
     user = context.user.get()
 
     user.participate_date = None
-    user.pause_date = context.now()
+    user.pause_date = context.now.datetime()
 
     command = parse_command(message.text)
     if command == PAUSE_WEEK_COMMAND:
@@ -603,16 +727,75 @@ async def handle_pause(context, message):
 
 
 ######
-#  OTHER/STUB
+#  CONTACT
+#########
+
+
+async def handle_contact(context, message):
+    user = context.user.get()
+
+    if not user.partner_user_id:
+        await message.answer(text=NO_CONTACT_TEXT)
+        return
+
+    key = contact_key(
+        context.now.week_id(),
+        user.user_id,
+        user.partner_user_id
+    )
+    contact = await context.db.get_contact(key)
+    if not contact:
+        await message.answer(text=NO_CONTACT_TEXT)
+        return
+
+    return contact
+
+
+async def handle_show_contact(context, message):
+    contact = await handle_contact(context, message)
+    if not contact:
+        return
+
+    partner_user = await context.db.get_user(contact.partner_user_id)
+    text = show_contact_text(partner_user)
+    await message.answer(text=text)
+
+
+async def handle_confirm_contact(context, message):
+    contact = await handle_contact(context, message)
+    if not contact:
+        return
+
+    contact.is_confirm = True
+    contact.is_break = False
+    await context.db.put_contact(contact)
+
+    await message.answer(text=CONFIRM_CONTACT_TEXT)
+
+
+async def handle_break_contact(context, message):
+    contact = await handle_contact(context, message)
+    if not contact:
+        return
+
+    contact.is_confirm = False
+    contact.is_break = True
+    await context.db.put_contact(contact)
+
+    await message.answer(text=BREAK_CONTACT_TEXT)
+
+
+async def handle_contact_feedback(context, message):
+    await message.answer(text=FEEDBACK_STUB_TEXT)
+
+
+######
+#  OTHER
 ########
 
 
 async def handle_other(context, message):
     await message.answer(text=START_TEXT)
-
-
-async def handle_stub(context, message):
-    await message.answer(text=PAIR_STUB_TEXT)
 
 
 #######
@@ -669,13 +852,22 @@ def setup_handlers(context):
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_stub,
-        commands=[
-            CONFIRM_PAIR_COMMAND,
-            BREAK_PAIR_COMMAND,
-            PAIR_FEEDBACK_COMMAND,
-        ]
+        context.handle_show_contact,
+        commands=SHOW_CONTACT_COMMAND,
     )
+    context.dispatcher.register_message_handler(
+        context.handle_confirm_contact,
+        commands=CONFIRM_CONTACT_COMMAND,
+    )
+    context.dispatcher.register_message_handler(
+        context.handle_break_contact,
+        commands=BREAK_CONTACT_COMMAND,
+    )
+    context.dispatcher.register_message_handler(
+        context.handle_contact_feedback,
+        commands=CONTACT_FEEDBACK_COMMAND,
+    )
+
     context.dispatcher.register_message_handler(
         context.handle_other
     )
@@ -807,11 +999,9 @@ class BotContext:
         )
         self.dispatcher = Dispatcher(self.bot)
         self.db = DB()
+        self.now = Now()
 
         self.user = ContextVar(USER_VAR)
-
-    def now(self):
-        return Datetime.utcnow()
 
 
 BotContext.handle_start = handle_start
@@ -821,9 +1011,15 @@ BotContext.handle_edit_city = handle_edit_city
 BotContext.handle_edit_links = handle_edit_links
 BotContext.handle_edit_about = handle_edit_about
 BotContext.handle_edit_states = handle_edit_states
+
 BotContext.handle_participate = handle_participate
 BotContext.handle_pause = handle_pause
-BotContext.handle_stub = handle_stub
+
+BotContext.handle_show_contact = handle_show_contact
+BotContext.handle_confirm_contact = handle_confirm_contact
+BotContext.handle_break_contact = handle_break_contact
+BotContext.handle_contact_feedback = handle_contact_feedback
+
 BotContext.handle_other = handle_other
 
 BotContext.setup_middlewares = setup_middlewares
@@ -833,6 +1029,31 @@ BotContext.setup_handlers = setup_handlers
 BotContext.on_startup = on_startup
 BotContext.on_shutdown = on_shutdown
 BotContext.run = run
+
+
+######
+#
+#   TIME
+#
+####
+
+
+START_DATE = Datetime.fromisoformat('2022-08-15')
+START_DATE -= Timedelta(days=START_DATE.weekday())  # monday
+
+
+def week_id(datetime):
+    return (datetime - START_DATE).days // 7
+
+
+now = Datetime.utcnow
+
+
+class Now:
+    datetime = now
+
+    def week_id(self):
+        return week_id(self.datetime())
 
 
 ######

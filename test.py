@@ -10,17 +10,20 @@ import pytest
 from aiogram.types import Update
 
 from main import (
-    Datetime,
-
     Bot,
     Dispatcher,
 
     DB,
     BotContext,
 
+    Now,
+    START_DATE,
+
     User,
     Intro,
     MONTH,
+
+    Contact,
 )
 
 
@@ -57,6 +60,21 @@ async def test_db_user(db):
 
     await db.delete_user(user_id=user.user_id)
     assert await db.get_user(user_id=user.user_id) is None
+    
+
+async def test_db_contact(db):
+    contact = Contact(
+        week_id=0,
+        user_id=1,
+        partner_user_id=2
+    )
+
+    await db.put_contact(contact)
+    assert contact == await db.get_contact(contact.key)
+
+    await db.delete_contact(contact.key)
+    assert await db.get_contact(contact.key) is None
+
 
 
 #######
@@ -81,6 +99,7 @@ class FakeDB(DB):
     def __init__(self):
         DB.__init__(self)
         self.users = []
+        self.contacts = []
 
     async def put_user(self, user):
         await self.delete_user(user.user_id)
@@ -97,6 +116,26 @@ class FakeDB(DB):
             if _.user_id != user_id
         ]
 
+    async def put_contact(self, contact):
+        await self.delete_contact(contact.key)
+        self.contacts.append(contact)
+
+    async def get_contact(self, key):
+        for contact in self.contacts:
+            if contact.key == key:
+                return contact
+
+    async def delete_contact(self, key):
+        self.contacts = [
+            _ for _ in self.contacts
+            if _.key != key
+        ]
+
+
+class FakeNow(Now):
+    def datetime(self):
+        return START_DATE
+
 
 class FakeBotContext(BotContext):
     def __init__(self):
@@ -104,9 +143,7 @@ class FakeBotContext(BotContext):
         self.bot = FakeBot()
         self.dispatcher = Dispatcher(self.bot)
         self.db = FakeDB()
-
-    def now(self):
-        return Datetime.fromisoformat('2022-01-01 10:00')
+        self.now = FakeNow()
 
 
 @pytest.fixture(scope='function')
@@ -239,11 +276,11 @@ async def test_bot_participate(context):
     await process_update(context, START_JSON.replace('/start', '/participate'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Бот подберёт пару'],
+        ['sendMessage', 'Бот подберёт'],
     ])
 
     user = context.db.users[0]
-    assert user.participate_date == context.now()
+    assert user.participate_date == context.now.datetime()
     assert user.pause_date is None
 
 
@@ -257,20 +294,66 @@ async def test_bot_pause(context):
 
     user = context.db.users[0]
     assert user.participate_date is None
-    assert user.pause_date == context.now()
+    assert user.pause_date == context.now.datetime()
     assert user.pause_period == MONTH
+
+
+#######
+#  CONTACT
+######
+
+
+async def test_bot_show_no_contact(context):
+    context.db.users = [User(user_id=113947584, partner_user_id=None)]
+    await process_update(context, START_JSON.replace('/start', '/show_contact'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Бот ещё не назначил'],
+    ])
+
+
+async def test_bot_show_contact(context):
+    context.db.users = [User(user_id=113947584, partner_user_id=113947584, intro=Intro())]
+    context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
+    await process_update(context, START_JSON.replace('/start', '/show_contact'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Контакт собеседника'],
+    ])
+
+
+async def test_bot_confirm_contact(context):
+    context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
+    context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
+    await process_update(context, START_JSON.replace('/start', '/confirm_contact'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Ура'],
+    ])
+    context.db.contacts[0].is_confirm == True
+
+
+async def test_bot_break_contact(context):
+    context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
+    context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
+    await process_update(context, START_JSON.replace('/start', '/break_contact'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Эх'],
+    ])
+    context.db.contacts[0].is_break == True
+
+
+async def test_bot_feedback_stub(context):
+    await process_update(context, START_JSON.replace('/start', '/contact_feedback'))
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Пока бот не умеет'],
+    ])
 
 
 #######
 #   OTHER/STUB
 #######
-
-
-async def test_bot_stub(context):
-    await process_update(context, START_JSON.replace('/start', '/break_pair'))
-    assert match_trace(context.bot.trace, [
-        ['sendMessage', '{"chat_id": 113947584, "text"']
-    ])
 
 
 async def test_bot_other(context):

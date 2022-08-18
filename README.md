@@ -71,12 +71,25 @@ aws dynamodb create-table \
     AttributeName=user_id,KeyType=HASH \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
+
+aws dynamodb create-table \
+  --table-name contacts \
+  --attribute-definitions \
+    AttributeName=key,AttributeType=S \
+  --key-schema \
+    AttributeName=key,KeyType=HASH \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
 ```
 
 Удалить таблички.
 
 ```bash
 aws dynamodb delete-table --table-name users \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
+aws dynamodb delete-table --table-name contacts \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
 ```
@@ -94,6 +107,11 @@ aws dynamodb list-tables \
 ```bash
 aws dynamodb scan \
   --table-name users \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
+aws dynamodb scan \
+  --table-name contacts \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
 ```
