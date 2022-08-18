@@ -398,16 +398,16 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 '''
 
 
-def format_empty(value):
-    if value is None:
-        return '∅'
-    return value
+def intro_text(intro):
+    return f'''Имя: {intro.name or '∅'}
+Город: {intro.city or '∅'}
+Ссылки: {intro.links or '∅'}
+О себе: {intro.about or '∅'}
+'''
 
 
-EDIT_INTRO_TEXT = f'''Имя: {{name}}
-Город: {{city}}
-Ссылки: {{links}}
-О себе: {{about}}
+def edit_intro_text(intro):
+    return f'''{intro_text(intro)}
 
 {command_description(EDIT_NAME_COMMAND)}
 {command_description(EDIT_CITY_COMMAND)}
@@ -417,6 +417,7 @@ EDIT_INTRO_TEXT = f'''Имя: {{name}}
 {command_description(CANCEL_COMMAND)}
 {command_description(EMPTY_COMMAND)}
 '''
+
 
 EDIT_NAME_TEXT = '''Напиши настоящее имя. Собеседник поймёт, как к тебе обращаться.'''
 
@@ -491,18 +492,9 @@ async def handle_start(context, message):
 ######
 
 
-def format_edit_intro_text(user):
-    return EDIT_INTRO_TEXT.format(
-        name=format_empty(user.intro.name),
-        city=format_empty(user.intro.city),
-        links=format_empty(user.intro.links),
-        about=format_empty(user.intro.about)
-    )
-
-
 async def handle_edit_intro(context, message):
     user = context.user.get()
-    text = format_edit_intro_text(user)
+    text = edit_intro_text(user.intro)
     await message.answer(text=text)
 
 
@@ -574,7 +566,7 @@ async def handle_edit_states(context, message):
             user.intro.about = value
 
     user.state = None
-    text = format_edit_intro_text(user)
+    text = edit_intro_text(user.intro)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
