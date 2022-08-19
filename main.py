@@ -93,6 +93,8 @@ EDIT_CITY_STATE = 'edit_city'
 EDIT_LINKS_STATE = 'edit_links'
 EDIT_ABOUT_STATE = 'edit_about'
 
+FEEDBACK_STATE = 'feedback'
+
 WEEK = 'week'
 MONTH = 'month'
 
@@ -137,19 +139,22 @@ def user_url(user_id):
 ######
 
 
+CONFIRM_STATE = 'confirm'
+FAIL_STATE = 'fail'
+
+
 @dataclass
 class Contact:
     week_id: int
     user_id: int
     partner_user_id: int
 
-    is_break: bool = None
-    is_confirm: bool = None
-    feedback: int = None
+    state: str = None
+    feedback: str = None
 
     @property
     def key(self):
-        return contact_key(
+        return (
             self.week_id,
             self.user_id,
             self.partner_user_id
@@ -317,14 +322,6 @@ def dynamo_key(parts):
     )
 
 
-def contact_key(week_id, user_id, partner_user_id):
-    return dynamo_key([
-        week_id,
-        user_id,
-        partner_user_id
-    ])
-
-
 ######
 #   READ/WRITE
 ######
@@ -371,14 +368,14 @@ async def read_contacts(db):
 
 async def put_contact(db, contact):
     item = dynamo_serialize_item(contact)
-    item[CONTACTS_KEY] = {S: contact.key}
+    item[CONTACTS_KEY] = {S: dynamo_key(contact.key)}
     await dynamo_put(db.client, CONTACTS_TABLE, item)
 
 
 async def get_contact(db, key):
     item = await dynamo_get(
         db.client, CONTACTS_TABLE,
-        CONTACTS_KEY, S, key
+        CONTACTS_KEY, S, dynamo_key(key)
     )
     if not item:
         return
@@ -388,7 +385,7 @@ async def get_contact(db, key):
 async def delete_contact(db, key):
     await dynamo_delete(
         db.client, CONTACTS_TABLE,
-        CONTACTS_KEY, S, key
+        CONTACTS_KEY, S, dynamo_key(key)
     )
 
 
@@ -449,7 +446,7 @@ PAUSE_MONTH_COMMAND = 'pause_month'
 
 SHOW_CONTACT_COMMAND = 'show_contact'
 CONFIRM_CONTACT_COMMAND = 'confirm_contact'
-BREAK_CONTACT_COMMAND = 'break_contact'
+FAIL_CONTACT_COMMAND = 'fail_contact'
 CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
 
 COMMAND_DESCRIPTIONS = {
@@ -461,18 +458,17 @@ COMMAND_DESCRIPTIONS = {
     EDIT_LINKS_COMMAND: 'поменять ссылки',
     EDIT_ABOUT_COMMAND: 'поменять "о себе"',
 
-    CANCEL_COMMAND: 'отменить',
-    EMPTY_COMMAND: 'оставить пустым',
-
     PARTICIPATE_COMMAND: 'участвовать во встречах',
     PAUSE_WEEK_COMMAND: 'пауза на неделю',
     PAUSE_MONTH_COMMAND: 'пауза на месяц',
 
-    SHOW_CONTACT_COMMAND: 'контакты и анкета собеседника',
-    CONFIRM_CONTACT_COMMAND: 'договорились о встрече, не напоминай',
-    BREAK_CONTACT_COMMAND: 'не договорились/не отвечает, подбери другого',
+    SHOW_CONTACT_COMMAND: 'анкета собеседника',
+    CONFIRM_CONTACT_COMMAND: 'договорились о встрече',
+    FAIL_CONTACT_COMMAND: 'не договорились/не отвечает',
     CONTACT_FEEDBACK_COMMAND: 'как прошла встреча',
 
+    CANCEL_COMMAND: 'отменить',
+    EMPTY_COMMAND: 'оставить пустым',
 }
 
 
@@ -501,17 +497,20 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 
 {command_description(SHOW_CONTACT_COMMAND)}
 {command_description(CONFIRM_CONTACT_COMMAND)}
-{command_description(BREAK_CONTACT_COMMAND)}
+{command_description(FAIL_CONTACT_COMMAND)}
 {command_description(CONTACT_FEEDBACK_COMMAND)}
 
 {command_description(START_COMMAND)}'''
 
 
+EMPTY_SYMBOL = '∅'
+
+
 def intro_text(intro):
-    return f'''Имя: {intro.name or '∅'}
-Город: {intro.city or '∅'}
-Ссылки: {intro.links or '∅'}
-О себе: {intro.about or '∅'}'''
+    return f'''Имя: {intro.name or EMPTY_SYMBOL}
+Город: {intro.city or EMPTY_SYMBOL}
+Ссылки: {intro.links or EMPTY_SYMBOL}
+О себе: {intro.about or EMPTY_SYMBOL}'''
 
 
 def edit_intro_text(intro):
@@ -573,14 +572,28 @@ def show_contact_text(user):
 {intro_text(user.intro)}
 
 {command_description(CONFIRM_CONTACT_COMMAND)}
-{command_description(BREAK_CONTACT_COMMAND)}
+{command_description(FAIL_CONTACT_COMMAND)}
 {command_description(CONTACT_FEEDBACK_COMMAND)}'''
 
 
 CONFIRM_CONTACT_TEXT = f'Ура! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
-BREAK_CONTACT_TEXT = 'Эх, бот подберёт нового собеседника, пришлёт анкету и контакт.'
+FAIL_CONTACT_TEXT = 'Эх, бот подберёт нового собеседника, пришлёт анкету и контакт.'
 
-FEEDBACK_STUB_TEXT = 'Бот пока не умеет принимать фидбек.'
+DISLIKE_FEEDBACK = '👎'
+OK_FEEDBACK = '👌'
+CONFUSED_FEEDBACK = '🤔'
+
+FEEDBACK_TEXT = f'''Если вернуться назад во времени:
+{DISLIKE_FEEDBACK} - предпочёл бы другого собеседника,
+{OK_FEEDBACK} - ничего бы не менял,
+{CONFUSED_FEEDBACK} - не знаю.
+
+Или напиши фидбек своими словами.
+
+{command_description(CANCEL_COMMAND)}
+{command_description(EMPTY_COMMAND)}'''
+
+ACK_FEEDBACK_TEXT = 'Спасибо! Принял фидбек.'
 
 
 ######
@@ -738,7 +751,7 @@ async def handle_contact(context, message):
         await message.answer(text=NO_CONTACT_TEXT)
         return
 
-    key = contact_key(
+    key = (
         context.now.week_id(),
         user.user_id,
         user.partner_user_id
@@ -766,27 +779,61 @@ async def handle_confirm_contact(context, message):
     if not contact:
         return
 
-    contact.is_confirm = True
-    contact.is_break = False
+    contact.state = CONFIRM_STATE
     await context.db.put_contact(contact)
 
     await message.answer(text=CONFIRM_CONTACT_TEXT)
 
 
-async def handle_break_contact(context, message):
+async def handle_fail_contact(context, message):
     contact = await handle_contact(context, message)
     if not contact:
         return
 
-    contact.is_confirm = False
-    contact.is_break = True
+    contact.state = FAIL_STATE
     await context.db.put_contact(contact)
 
-    await message.answer(text=BREAK_CONTACT_TEXT)
+    await message.answer(text=FAIL_CONTACT_TEXT)
 
 
 async def handle_contact_feedback(context, message):
-    await message.answer(text=FEEDBACK_STUB_TEXT)
+    contact = await handle_contact(context, message)
+    if not contact:
+        return
+
+    user = context.user.get()
+    user.state = FEEDBACK_STATE
+
+    markup = ReplyKeyboardMarkup(resize_keyboard=True)
+    for feedback in [DISLIKE_FEEDBACK, OK_FEEDBACK, CONFUSED_FEEDBACK]:
+        markup.insert(feedback)
+
+    await message.answer(
+        text=FEEDBACK_TEXT,
+        reply_markup=markup
+    )
+
+
+async def handle_feedback_state(context, message):
+    contact = await handle_contact(context, message)
+    if not contact:
+        return
+
+    command = parse_command(message.text)
+    if command != CANCEL_COMMAND:
+        if command != EMPTY_COMMAND:
+            contact.feedback = message.text
+        else:
+            contact.feedback = None
+    await context.db.put_contact(contact)
+
+    user = context.user.get()
+    user.state = None
+
+    await message.answer(
+        text=ACK_FEEDBACK_TEXT,
+        reply_markup=ReplyKeyboardRemove()
+    )
 
 
 ######
@@ -860,12 +907,17 @@ def setup_handlers(context):
         commands=CONFIRM_CONTACT_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_break_contact,
-        commands=BREAK_CONTACT_COMMAND,
+        context.handle_fail_contact,
+        commands=FAIL_CONTACT_COMMAND,
     )
+
     context.dispatcher.register_message_handler(
         context.handle_contact_feedback,
         commands=CONTACT_FEEDBACK_COMMAND,
+    )
+    context.dispatcher.register_message_handler(
+        context.handle_feedback_state,
+        user_states=FEEDBACK_STATE,
     )
 
     context.dispatcher.register_message_handler(
@@ -885,6 +937,8 @@ class UserStatesFilter(BoundFilter):
     key = 'user_states'
 
     def __init__(self, user_states):
+        if not isinstance(user_states, list):
+            user_states = [user_states]
         self.user_states = user_states
 
     async def check(self, obj):
@@ -1017,8 +1071,10 @@ BotContext.handle_pause = handle_pause
 
 BotContext.handle_show_contact = handle_show_contact
 BotContext.handle_confirm_contact = handle_confirm_contact
-BotContext.handle_break_contact = handle_break_contact
+BotContext.handle_fail_contact = handle_fail_contact
+
 BotContext.handle_contact_feedback = handle_contact_feedback
+BotContext.handle_feedback_state = handle_feedback_state
 
 BotContext.handle_other = handle_other
 

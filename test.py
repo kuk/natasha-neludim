@@ -24,6 +24,9 @@ from main import (
     MONTH,
 
     Contact,
+    OK_FEEDBACK,
+    CONFIRM_STATE,
+    FAIL_STATE,
 )
 
 
@@ -330,25 +333,31 @@ async def test_bot_confirm_contact(context):
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Ура'],
     ])
-    context.db.contacts[0].is_confirm == True
+    assert context.db.contacts[0].state == CONFIRM_STATE
 
 
-async def test_bot_break_contact(context):
+async def test_bot_fail_contact(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
     context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
-    await process_update(context, START_JSON.replace('/start', '/break_contact'))
+    await process_update(context, START_JSON.replace('/start', '/fail_contact'))
 
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Эх'],
     ])
-    context.db.contacts[0].is_break == True
+    assert context.db.contacts[0].state == FAIL_STATE
 
 
-async def test_bot_feedback_stub(context):
+async def test_bot_contact_feedback(context):
+    context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
+    context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/contact_feedback'))
+    await process_update(context, START_JSON.replace('/start', OK_FEEDBACK))
+
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Бот пока не умеет'],
+        ['sendMessage', 'Если вернуться назад'],
+        ['sendMessage', 'Принял фидбек'],
     ])
+    assert context.db.contacts[0].feedback == OK_FEEDBACK
 
 
 #######
