@@ -348,14 +348,14 @@ async def test_bot_fail_contact(context):
 
 
 async def test_bot_contact_feedback(context):
-    context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
+    context.db.users = [User(user_id=113947584, partner_user_id=113947584, intro=Intro())]
     context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/contact_feedback'))
     await process_update(context, START_JSON.replace('/start', OK_FEEDBACK))
 
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Если вернуться назад'],
-        ['sendMessage', 'Принял фидбек'],
+        ['sendMessage', 'Фидбек'],
     ])
     assert context.db.contacts[0].feedback == OK_FEEDBACK
 

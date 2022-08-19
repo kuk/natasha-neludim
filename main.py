@@ -583,7 +583,11 @@ DISLIKE_FEEDBACK = '👎'
 OK_FEEDBACK = '👌'
 CONFUSED_FEEDBACK = '🤔'
 
-FEEDBACK_TEXT = f'''Если вернуться назад во времени:
+
+def contact_feedback_text(user):
+    return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
+
+Если вернуться назад во времени:
 {DISLIKE_FEEDBACK} - предпочёл бы другого собеседника,
 {OK_FEEDBACK} - ничего бы не менял,
 {CONFUSED_FEEDBACK} - не знаю.
@@ -593,7 +597,11 @@ FEEDBACK_TEXT = f'''Если вернуться назад во времени:
 {command_description(CANCEL_COMMAND)}
 {command_description(EMPTY_COMMAND)}'''
 
-ACK_FEEDBACK_TEXT = 'Спасибо! Принял фидбек.'
+
+def feedback_state_text(user, contact):
+    return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
+Фидбек: {contact.feedback or EMPTY_SYMBOL}
+'''
 
 
 ######
@@ -808,8 +816,9 @@ async def handle_contact_feedback(context, message):
     for feedback in [DISLIKE_FEEDBACK, OK_FEEDBACK, CONFUSED_FEEDBACK]:
         markup.insert(feedback)
 
+    text = contact_feedback_text(user)
     await message.answer(
-        text=FEEDBACK_TEXT,
+        text=text,
         reply_markup=markup
     )
 
@@ -830,8 +839,9 @@ async def handle_feedback_state(context, message):
     user = context.user.get()
     user.state = None
 
+    text = feedback_state_text(user, contact)
     await message.answer(
-        text=ACK_FEEDBACK_TEXT,
+        text=text,
         reply_markup=ReplyKeyboardRemove()
     )
 
