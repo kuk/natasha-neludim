@@ -24,7 +24,6 @@ from aiogram.types import (
     ChatType,
     BotCommand,
     ReplyKeyboardMarkup,
-    KeyboardButton,
     ReplyKeyboardRemove,
 )
 from aiogram.dispatcher.middlewares import BaseMiddleware
@@ -642,7 +641,7 @@ async def handle_edit_city(context, message):
 
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for city in TOP_CITIES:
-        markup.insert(KeyboardButton(city))
+        markup.insert(city)
 
     await message.answer(
         text=EDIT_CITY_TEXT,
