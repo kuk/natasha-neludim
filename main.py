@@ -431,7 +431,7 @@ DB.delete_contact = delete_contact
 
 START_COMMAND = 'start'
 
-SHOW_INTRO_COMMAND = 'show_intro'
+EDIT_INTRO_COMMAND = 'edit_intro'
 EDIT_NAME_COMMAND = 'edit_name'
 EDIT_CITY_COMMAND = 'edit_city'
 EDIT_LINKS_COMMAND = 'edit_links'
@@ -452,7 +452,7 @@ CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
 COMMAND_DESCRIPTIONS = {
     START_COMMAND: 'список команд',
 
-    SHOW_INTRO_COMMAND: 'моя анкета',
+    EDIT_INTRO_COMMAND: 'поменять анкету',
     EDIT_NAME_COMMAND: 'поменять имя',
     EDIT_CITY_COMMAND: 'поменять город',
     EDIT_LINKS_COMMAND: 'поменять ссылки',
@@ -483,9 +483,9 @@ def command_description(command):
 
 START_TEXT = f'''Бот организует random coffee для сообщества @natural_language_processing.
 
-Заполни, пожалуйста, короткую анкету /{SHOW_INTRO_COMMAND}. Заходи в закрытый чат для первых участников https://t.me/+cNnNahFlZ_gzZDYy.
+Заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}. Заходи в закрытый чат для первых участников https://t.me/+cNnNahFlZ_gzZDYy.
 
-{command_description(SHOW_INTRO_COMMAND)}
+{command_description(EDIT_INTRO_COMMAND)}
 {command_description(EDIT_NAME_COMMAND)}
 {command_description(EDIT_CITY_COMMAND)}
 {command_description(EDIT_LINKS_COMMAND)}
@@ -513,7 +513,7 @@ def intro_text(intro):
 О себе: {intro.about or EMPTY_SYMBOL}'''
 
 
-def show_intro_text(intro):
+def edit_intro_text(intro):
     return f'''{intro_text(intro)}
 
 {command_description(EDIT_NAME_COMMAND)}
@@ -635,9 +635,9 @@ async def handle_start(context, message):
 ######
 
 
-async def handle_show_intro(context, message):
+async def handle_edit_intro(context, message):
     user = context.user.get()
-    text = show_intro_text(user.intro)
+    text = edit_intro_text(user.intro)
     await message.answer(text=text)
 
 
@@ -710,7 +710,7 @@ async def handle_edit_states(context, message):
 
     user.state = None
 
-    text = show_intro_text(user.intro)
+    text = edit_intro_text(user.intro)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
@@ -867,8 +867,8 @@ def setup_handlers(context):
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_show_intro,
-        commands=SHOW_INTRO_COMMAND
+        context.handle_edit_intro,
+        commands=EDIT_INTRO_COMMAND
     )
     context.dispatcher.register_message_handler(
         context.handle_edit_name,
@@ -1069,7 +1069,7 @@ class BotContext:
 
 
 BotContext.handle_start = handle_start
-BotContext.handle_show_intro = handle_show_intro
+BotContext.handle_edit_intro = handle_edit_intro
 BotContext.handle_edit_name = handle_edit_name
 BotContext.handle_edit_city = handle_edit_city
 BotContext.handle_edit_links = handle_edit_links
