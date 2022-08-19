@@ -469,10 +469,11 @@ COMMAND_DESCRIPTIONS = {
     PAUSE_WEEK_COMMAND: 'пауза на неделю',
     PAUSE_MONTH_COMMAND: 'пауза на месяц',
 
-    SHOW_CONTACT_COMMAND: 'контакты собеседника',
-    CONFIRM_CONTACT_COMMAND: 'договорились о встрече',
-    BREAK_CONTACT_COMMAND: 'не договориль/не отвечает',
+    SHOW_CONTACT_COMMAND: 'контакты и анкета собеседника',
+    CONFIRM_CONTACT_COMMAND: 'договорились о встрече, не напоминай',
+    BREAK_CONTACT_COMMAND: 'не договорились/не отвечает, подбери другого',
     CONTACT_FEEDBACK_COMMAND: 'как прошла встреча',
+
 }
 
 
@@ -562,7 +563,7 @@ TOP_CITIES = [
 ]
 
 PARTICIPATE_TEXT = 'Ура! Бот подберёт собеседника, пришлёт анкету и контакт.'
-PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет тебя беспокоить.'
+PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
 
 NO_CONTACT_TEXT = 'Бот ещё не назначил тебе собеседника.'
 
@@ -580,7 +581,7 @@ def show_contact_text(user):
 CONFIRM_CONTACT_TEXT = f'Ура! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
 BREAK_CONTACT_TEXT = 'Эх, бот подберёт нового собеседника, пришлёт анкету и контакт.'
 
-FEEDBACK_STUB_TEXT = 'Пока бот не умеет принимать фидбек.'
+FEEDBACK_STUB_TEXT = 'Бот пока не умеет принимать фидбек.'
 
 
 ######

@@ -347,7 +347,7 @@ async def test_bot_break_contact(context):
 async def test_bot_feedback_stub(context):
     await process_update(context, START_JSON.replace('/start', '/contact_feedback'))
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Пока бот не умеет'],
+        ['sendMessage', 'Бот пока не умеет'],
     ])
 
 
