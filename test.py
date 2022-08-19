@@ -206,7 +206,7 @@ async def test_bot_start(context):
 
 async def test_bot_edit_name(context):
     context.db.users = [User(user_id=113947584, intro=Intro())]
-    await process_update(context, START_JSON.replace('/start', '/edit_intro'))
+    await process_update(context, START_JSON.replace('/start', '/show_intro'))
     await process_update(context, START_JSON.replace('/start', '/edit_name'))
     await process_update(context, START_JSON.replace('/start', 'Alexander Kukushkin'))
 
