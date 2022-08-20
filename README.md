@@ -64,6 +64,15 @@ ru-central1
 
 ```bash
 aws dynamodb create-table \
+  --table-name chats \
+  --attribute-definitions \
+    AttributeName=id,AttributeType=N \
+  --key-schema \
+    AttributeName=id,KeyType=HASH \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
+aws dynamodb create-table \
   --table-name users \
   --attribute-definitions \
     AttributeName=user_id,AttributeType=N \
@@ -85,6 +94,10 @@ aws dynamodb create-table \
 Удалить таблички.
 
 ```bash
+aws dynamodb delete-table --table-name chats \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
 aws dynamodb delete-table --table-name users \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
@@ -105,6 +118,11 @@ aws dynamodb list-tables \
 Прочитать табличку.
 
 ```bash
+aws dynamodb scan \
+  --table-name chats \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
 aws dynamodb scan \
   --table-name users \
   --endpoint $DYNAMO_ENDPOINT \

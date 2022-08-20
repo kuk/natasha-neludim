@@ -49,6 +49,11 @@ async def db():
     await db.close()
 
 
+async def test_db_chat(db):
+    await db.set_chat_state(1, '2')
+    assert '2' == await db.get_chat_state(1)
+
+
 async def test_db_user(db):
     user = User(
         user_id=1,
@@ -100,8 +105,15 @@ class FakeBot(Bot):
 class FakeDB(DB):
     def __init__(self):
         DB.__init__(self)
+        self.chat_states = {}
         self.users = []
         self.contacts = []
+
+    async def set_chat_state(self, id, state):
+        self.chat_states[id] = state
+
+    async def get_chat_state(self, id):
+        return self.chat_states.get(id)
 
     async def put_user(self, user):
         await self.delete_user(user.user_id)
@@ -282,8 +294,8 @@ async def test_bot_participate(context):
     ])
 
     user = context.db.users[0]
-    assert user.participate_date == context.now.datetime()
-    assert user.pause_date is None
+    assert user.agreed_participate == context.now.datetime()
+    assert user.paused is None
 
 
 async def test_bot_pause(context):
@@ -295,8 +307,8 @@ async def test_bot_pause(context):
     ])
 
     user = context.db.users[0]
-    assert user.participate_date is None
-    assert user.pause_date == context.now.datetime()
+    assert user.agreed_participate is None
+    assert user.paused == context.now.datetime()
     assert user.pause_period == MONTH
 
 

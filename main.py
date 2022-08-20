@@ -12,7 +12,6 @@ from datetime import (
     timedelta as Timedelta
 )
 from contextlib import AsyncExitStack
-from contextvars import ContextVar
 
 from aiogram import (
     Bot,
@@ -83,17 +82,28 @@ def obj_annots(obj):
         yield field.name, field.type
 
 
-####
-#   USER
 ######
+#  CHAT
+#####
 
 
 EDIT_NAME_STATE = 'edit_name'
 EDIT_CITY_STATE = 'edit_city'
 EDIT_LINKS_STATE = 'edit_links'
 EDIT_ABOUT_STATE = 'edit_about'
+CONTACT_FEEDBACK_STATE = 'contact_feedback'
 
-FEEDBACK_STATE = 'feedback'
+
+@dataclass
+class Chat:
+    id: int
+    state: str = None
+
+
+####
+#   USER
+######
+
 
 WEEK = 'week'
 MONTH = 'month'
@@ -111,10 +121,9 @@ class Intro:
 class User:
     user_id: int
     username: str = None
-    state: str = None
 
-    participate_date: Datetime = None
-    pause_date: Datetime = None
+    agreed_participate: Datetime = None
+    paused: Datetime = None
     pause_period: str = None
 
     intro: Intro = None
@@ -327,11 +336,40 @@ def dynamo_key(parts):
 ######
 
 
+CHATS_TABLE = 'chats'
+CHATS_KEY = 'id'
+
 USERS_TABLE = 'users'
 USERS_KEY = 'user_id'
 
 CONTACTS_TABLE = 'contacts'
 CONTACTS_KEY = 'key'
+
+
+async def put_chat(db, chat):
+    item = dynamo_serialize_item(chat)
+    await dynamo_put(db.client, CHATS_TABLE, item)
+
+
+async def get_chat(db, id):
+    item = await dynamo_get(
+        db.client, CHATS_TABLE,
+        CHATS_KEY, N, id
+    )
+    if not item:
+        return
+    return dynamo_deserialize_item(item, Chat)
+
+
+async def set_chat_state(db, id, state):
+    chat = Chat(id, state)
+    await put_chat(db, chat)
+
+
+async def get_chat_state(db, id):
+    chat = await get_chat(db, id)
+    if chat:
+        return chat.state
 
 
 async def read_users(db):
@@ -405,6 +443,11 @@ class DB:
     async def close(self):
         await self.exit_stack.aclose()
 
+
+DB.put_chat = put_chat
+DB.get_chat = get_chat
+DB.set_chat_state = set_chat_state
+DB.get_chat_state = get_chat_state
 
 DB.read_users = read_users
 DB.put_user = put_user
@@ -593,7 +636,10 @@ def contact_feedback_text(user):
 {command_description(EMPTY_COMMAND)}'''
 
 
-def feedback_state_text(user, contact):
+CONTACT_FEEDBACK_OPTIONS = '12345'
+
+
+def contact_feedback_state_text(user, contact):
     return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
 Фидбек: {contact.feedback or EMPTY_SYMBOL}
 '''
@@ -605,7 +651,7 @@ def feedback_state_text(user, contact):
 
 
 async def handle_start(context, message):
-    user = context.user.get()
+    user = await context.db.get_user(message.from_user.id)
     if not user:
         user = User(
             user_id=message.from_user.id,
@@ -614,7 +660,7 @@ async def handle_start(context, message):
                 name=message.from_user.full_name,
             )
         )
-        context.user.set(user)
+        await context.db.put_user(user)
 
     await context.bot.set_my_commands(commands=[
         BotCommand(command, description)
@@ -631,14 +677,13 @@ async def handle_start(context, message):
 
 
 async def handle_edit_intro(context, message):
-    user = context.user.get()
+    user = await context.db.get_user(message.from_user.id)
     text = edit_intro_text(user.intro)
     await message.answer(text=text)
 
 
 async def handle_edit_name(context, message):
-    user = context.user.get()
-    user.state = EDIT_NAME_STATE
+    user = await context.db.get_user(message.from_user.id)
 
     markup = None
     if not user.intro.name and message.from_user.full_name:
@@ -649,12 +694,13 @@ async def handle_edit_name(context, message):
         text=EDIT_NAME_TEXT,
         reply_markup=markup
     )
+    await context.db.set_chat_state(
+        message.chat.id,
+        EDIT_NAME_STATE
+    )
 
 
 async def handle_edit_city(context, message):
-    user = context.user.get()
-    user.state = EDIT_CITY_STATE
-
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     for city in TOP_CITIES:
         markup.insert(city)
@@ -663,20 +709,26 @@ async def handle_edit_city(context, message):
         text=EDIT_CITY_TEXT,
         reply_markup=markup
     )
+    await context.db.set_chat_state(
+        message.chat.id,
+        EDIT_CITY_STATE
+    )
 
 
 async def handle_edit_links(context, message):
-    user = context.user.get()
-    user.state = EDIT_LINKS_STATE
-
     await message.answer(text=EDIT_LINKS_TEXT)
+    await context.db.set_chat_state(
+        message.chat.id,
+        EDIT_LINKS_STATE
+    )
 
 
 async def handle_edit_about(context, message):
-    user = context.user.get()
-    user.state = EDIT_ABOUT_STATE
-
     await message.answer(text=EDIT_ABOUT_TEXT)
+    await context.db.set_chat_state(
+        message.chat.id,
+        EDIT_ABOUT_STATE
+    )
 
 
 def parse_command(text):
@@ -684,8 +736,9 @@ def parse_command(text):
         return text.lstrip('/')
 
 
-async def handle_edit_states(context, message):
-    user = context.user.get()
+async def handle_edit_intro_states(context, message):
+    state = await context.db.get_chat_state(message.chat.id)
+    user = await context.db.get_user(message.from_user.id)
 
     command = parse_command(message.text)
     if command != CANCEL_COMMAND:
@@ -694,21 +747,25 @@ async def handle_edit_states(context, message):
         else:
             value = None
 
-        if user.state == EDIT_NAME_STATE:
+        if state == EDIT_NAME_STATE:
             user.intro.name = value
-        elif user.state == EDIT_CITY_STATE:
+        elif state == EDIT_CITY_STATE:
             user.intro.city = value
-        elif user.state == EDIT_LINKS_STATE:
+        elif state == EDIT_LINKS_STATE:
             user.intro.links = value
-        elif user.state == EDIT_ABOUT_STATE:
+        elif state == EDIT_ABOUT_STATE:
             user.intro.about = value
 
-    user.state = None
+        await context.db.put_user(user)
 
     text = edit_intro_text(user.intro)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
+    )
+    await context.db.set_chat_state(
+        message.chat.id,
+        state=None
     )
 
 
@@ -718,20 +775,21 @@ async def handle_edit_states(context, message):
 
 
 async def handle_participate(context, message):
-    user = context.user.get()
+    user = await context.db.get_user(message.from_user.id)
 
-    user.participate_date = context.now.datetime()
-    user.pause_date = None
+    user.agreed_participate = context.now.datetime()
+    user.paused = None
     user.pause_period = None
 
+    await context.db.put_user(user)
     await message.answer(text=PARTICIPATE_TEXT)
 
 
 async def handle_pause(context, message):
-    user = context.user.get()
+    user = await context.db.get_user(message.from_user.id)
 
-    user.participate_date = None
-    user.pause_date = context.now.datetime()
+    user.agreed_participate = None
+    user.paused = context.now.datetime()
 
     command = parse_command(message.text)
     if command == PAUSE_WEEK_COMMAND:
@@ -739,6 +797,7 @@ async def handle_pause(context, message):
     elif command == PAUSE_MONTH_COMMAND:
         user.pause_period = MONTH
 
+    await context.db.put_user(user)
     await message.answer(text=PAUSE_TEXT)
 
 
@@ -748,7 +807,7 @@ async def handle_pause(context, message):
 
 
 async def handle_contact(context, message):
-    user = context.user.get()
+    user = await context.db.get_user(message.from_user.id)
 
     if not user.partner_user_id:
         await message.answer(text=NO_CONTACT_TEXT)
@@ -764,6 +823,7 @@ async def handle_contact(context, message):
         await message.answer(text=NO_CONTACT_TEXT)
         return
 
+    contact.user = user
     return contact
 
 
@@ -804,24 +864,25 @@ async def handle_contact_feedback(context, message):
     if not contact:
         return
 
-    user = context.user.get()
-    user.state = FEEDBACK_STATE
-
     markup = ReplyKeyboardMarkup(
         resize_keyboard=True,
-        row_width=5
+        row_width=len(CONTACT_FEEDBACK_OPTIONS)
     )
-    for feedback in '12345':
-        markup.insert(feedback)
+    for option in CONTACT_FEEDBACK_OPTIONS:
+        markup.insert(option)
 
-    text = contact_feedback_text(user)
+    text = contact_feedback_text(contact.user)
     await message.answer(
         text=text,
         reply_markup=markup
     )
+    await context.db.set_chat_state(
+        message.chat.id,
+        CONTACT_FEEDBACK_STATE
+    )
 
 
-async def handle_feedback_state(context, message):
+async def handle_contact_feedback_state(context, message):
     contact = await handle_contact(context, message)
     if not contact:
         return
@@ -832,15 +893,17 @@ async def handle_feedback_state(context, message):
             contact.feedback = message.text
         else:
             contact.feedback = None
-    await context.db.put_contact(contact)
 
-    user = context.user.get()
-    user.state = None
+        await context.db.put_contact(contact)
 
-    text = feedback_state_text(user, contact)
+    text = contact_feedback_state_text(contact.user, contact)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
+    )
+    await context.db.set_chat_state(
+        message.chat.id,
+        state=None
     )
 
 
@@ -884,15 +947,6 @@ def setup_handlers(context):
         context.handle_edit_about,
         commands=EDIT_ABOUT_COMMAND,
     )
-    context.dispatcher.register_message_handler(
-        context.handle_edit_states,
-        user_states=[
-            EDIT_NAME_STATE,
-            EDIT_CITY_STATE,
-            EDIT_LINKS_STATE,
-            EDIT_ABOUT_STATE,
-        ]
-    )
 
     context.dispatcher.register_message_handler(
         context.handle_participate,
@@ -918,14 +972,27 @@ def setup_handlers(context):
         context.handle_fail_contact,
         commands=FAIL_CONTACT_COMMAND,
     )
-
     context.dispatcher.register_message_handler(
         context.handle_contact_feedback,
         commands=CONTACT_FEEDBACK_COMMAND,
     )
+
+    # Every call to chat_states filter = db query. Place handlers
+    # last. TODO Implement aiogram storage adapter for DynamoDB,
+    # natively handle FSM
+
     context.dispatcher.register_message_handler(
-        context.handle_feedback_state,
-        user_states=FEEDBACK_STATE,
+        context.handle_edit_intro_states,
+        chat_states=[
+            EDIT_NAME_STATE,
+            EDIT_CITY_STATE,
+            EDIT_LINKS_STATE,
+            EDIT_ABOUT_STATE,
+        ]
+    )
+    context.dispatcher.register_message_handler(
+        context.handle_contact_feedback_state,
+        chat_states=CONTACT_FEEDBACK_STATE,
     )
 
     context.dispatcher.register_message_handler(
@@ -940,23 +1007,23 @@ def setup_handlers(context):
 ####
 
 
-class UserStatesFilter(BoundFilter):
+class ChatStatesFilter(BoundFilter):
     context = None
-    key = 'user_states'
+    key = 'chat_states'
 
-    def __init__(self, user_states):
-        if not isinstance(user_states, list):
-            user_states = [user_states]
-        self.user_states = user_states
+    def __init__(self, chat_states):
+        if not isinstance(chat_states, list):
+            chat_states = [chat_states]
+        self.chat_states = chat_states
 
     async def check(self, obj):
-        user = self.context.user.get()
-        return user and user.state in self.user_states
+        state = await self.context.db.get_chat_state(obj.chat.id)
+        return state in self.chat_states
 
 
 def setup_filters(context):
-    UserStatesFilter.context = context
-    context.dispatcher.filters_factory.bind(UserStatesFilter)
+    ChatStatesFilter.context = context
+    context.dispatcher.filters_factory.bind(ChatStatesFilter)
 
 
 ######
@@ -980,26 +1047,10 @@ class LoggingMiddleware(BaseMiddleware):
         ))
 
 
-class UserMiddleware(BaseMiddleware):
-    def __init__(self, context):
-        self.context = context
-        BaseMiddleware.__init__(self)
-
-    async def on_pre_process_message(self, message, data):
-        user = await self.context.db.get_user(message.from_user.id)
-        self.context.user.set(user)
-
-    async def on_post_process_message(self, message, results, data):
-        user = self.context.user.get()
-        if user:
-            await self.context.db.put_user(user)
-
-
 def setup_middlewares(context):
     middlewares = [
         PrivateMiddleware(),
         LoggingMiddleware(),
-        UserMiddleware(context),
     ]
     for middleware in middlewares:
         context.dispatcher.middleware.setup(middleware)
@@ -1049,9 +1100,6 @@ def run(context):
 ######
 
 
-USER_VAR = 'user'
-
-
 class BotContext:
     def __init__(self):
         self.bot = Bot(
@@ -1063,8 +1111,6 @@ class BotContext:
         self.db = DB()
         self.now = Now()
 
-        self.user = ContextVar(USER_VAR)
-
 
 BotContext.handle_start = handle_start
 BotContext.handle_edit_intro = handle_edit_intro
@@ -1072,7 +1118,7 @@ BotContext.handle_edit_name = handle_edit_name
 BotContext.handle_edit_city = handle_edit_city
 BotContext.handle_edit_links = handle_edit_links
 BotContext.handle_edit_about = handle_edit_about
-BotContext.handle_edit_states = handle_edit_states
+BotContext.handle_edit_intro_states = handle_edit_intro_states
 
 BotContext.handle_participate = handle_participate
 BotContext.handle_pause = handle_pause
@@ -1082,7 +1128,7 @@ BotContext.handle_confirm_contact = handle_confirm_contact
 BotContext.handle_fail_contact = handle_fail_contact
 
 BotContext.handle_contact_feedback = handle_contact_feedback
-BotContext.handle_feedback_state = handle_feedback_state
+BotContext.handle_contact_feedback_state = handle_contact_feedback_state
 
 BotContext.handle_other = handle_other
 
