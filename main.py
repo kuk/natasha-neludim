@@ -579,18 +579,13 @@ def show_contact_text(user):
 CONFIRM_CONTACT_TEXT = f'Ура! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
 FAIL_CONTACT_TEXT = 'Эх, бот подберёт нового собеседника, пришлёт анкету и контакт.'
 
-DISLIKE_FEEDBACK = '👎'
-OK_FEEDBACK = '👌'
-CONFUSED_FEEDBACK = '🤔'
-
 
 def contact_feedback_text(user):
     return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
 
-Если вернуться назад во времени:
-{DISLIKE_FEEDBACK} - предпочёл бы другого собеседника,
-{OK_FEEDBACK} - ничего бы не менял,
-{CONFUSED_FEEDBACK} - не знаю.
+1 - очень плохо
+⋮
+5 - очень хорошо
 
 Или напиши фидбек своими словами.
 
@@ -812,8 +807,11 @@ async def handle_contact_feedback(context, message):
     user = context.user.get()
     user.state = FEEDBACK_STATE
 
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    for feedback in [DISLIKE_FEEDBACK, OK_FEEDBACK, CONFUSED_FEEDBACK]:
+    markup = ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        row_width=5
+    )
+    for feedback in '12345':
         markup.insert(feedback)
 
     text = contact_feedback_text(user)

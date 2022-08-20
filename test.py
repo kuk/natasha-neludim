@@ -24,7 +24,6 @@ from main import (
     MONTH,
 
     Contact,
-    OK_FEEDBACK,
     CONFIRM_STATE,
     FAIL_STATE,
 )
@@ -351,13 +350,13 @@ async def test_bot_contact_feedback(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584, intro=Intro())]
     context.db.contacts = [Contact(week_id=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/contact_feedback'))
-    await process_update(context, START_JSON.replace('/start', OK_FEEDBACK))
+    await process_update(context, START_JSON.replace('/start', '3'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Если вернуться назад'],
+        ['sendMessage', 'очень плохо'],
         ['sendMessage', 'Фидбек'],
     ])
-    assert context.db.contacts[0].feedback == OK_FEEDBACK
+    assert context.db.contacts[0].feedback == '3'
 
 
 #######
