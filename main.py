@@ -143,6 +143,15 @@ def user_url(user_id):
     return f'tg://user?id={user_id}'
 
 
+def find_user(users, username=None, user_id=None):
+    for user in users:
+        if (
+            username and user.username == username
+            or user_id and user.user_id == user_id
+        ):
+            return user
+
+
 #######
 #  CONTACT
 ######
@@ -154,7 +163,7 @@ FAIL_STATE = 'fail'
 
 @dataclass
 class Contact:
-    week_id: int
+    week_index: int
     user_id: int
     partner_user_id: int
 
@@ -164,7 +173,7 @@ class Contact:
     @property
     def key(self):
         return (
-            self.week_id,
+            self.week_index,
             self.user_id,
             self.partner_user_id
         )
@@ -493,7 +502,7 @@ FAIL_CONTACT_COMMAND = 'fail_contact'
 CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
 
 COMMAND_DESCRIPTIONS = {
-    START_COMMAND: 'список команд',
+    START_COMMAND: 'инструкция, список команд',
 
     EDIT_INTRO_COMMAND: 'поменять анкету',
     EDIT_NAME_COMMAND: 'поменять имя',
@@ -524,11 +533,7 @@ def command_description(command):
     return f'/{command} - {COMMAND_DESCRIPTIONS[command]}'
 
 
-START_TEXT = f'''Бот организует random coffee для сообщества @natural_language_processing.
-
-Заполни, пожалуйста, короткую анкету /{EDIT_INTRO_COMMAND}. Заходи в закрытый чат для первых участников https://t.me/+cNnNahFlZ_gzZDYy.
-
-{command_description(EDIT_INTRO_COMMAND)}
+COMMANDS_TEXT = f'''{command_description(EDIT_INTRO_COMMAND)}
 {command_description(EDIT_NAME_COMMAND)}
 {command_description(EDIT_CITY_COMMAND)}
 {command_description(EDIT_LINKS_COMMAND)}
@@ -544,6 +549,49 @@ START_TEXT = f'''Бот организует random coffee для сообщес
 {command_description(CONTACT_FEEDBACK_COMMAND)}
 
 {command_description(START_COMMAND)}'''
+
+
+MONTHS = {
+    1: 'января',
+    2: 'февраля',
+    3: 'марта',
+    4: 'апреля',
+    5: 'мая',
+    6: 'июня',
+    7: 'июля',
+    8: 'августа',
+    9: 'сентября',
+    10: 'октября',
+    11: 'ноября',
+    12: 'декабря',
+}
+
+
+def day_month(datetime):
+    return f'{datetime.day} {MONTHS[datetime.month]}'
+
+
+def day_day_month(start, stop):
+    if start.month == stop.month:
+        return f'{start.day}-{stop.day} {MONTHS[start.month]}'
+    else:
+        return f'{day_month(start)} - {day_month(stop)}'
+
+
+def start_text(schedule):
+    return f'''Бот организует random coffee для сообщества @natural_language_processing.
+
+Инструкция:
+1. Заполни короткую анкету /{EDIT_INTRO_COMMAND}.
+2. Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
+3. Заходи в закрытый чат для первых участников https://t.me/+-A_Q6y-dODY3OTli. Там разработчик бота @alexkuk принимает баг репорты, рассказывает о новых фичах.
+
+{COMMANDS_TEXT}'''
+
+
+OTHER_TEXT = f'''Бот ответчает только на команды.
+
+{COMMANDS_TEXT}'''
 
 
 EMPTY_SYMBOL = '∅'
@@ -568,9 +616,9 @@ def edit_intro_text(intro):
 {command_description(EMPTY_COMMAND)}'''
 
 
-EDIT_NAME_TEXT = '''Напиши настоящее имя. Собеседник поймёт, как к тебе обращаться.'''
+EDIT_NAME_TEXT = '''Напиши своё настоящее имя. Собеседник поймёт, как к тебе обращаться.'''
 
-EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Собеседник поймет предлагать оффлайн встречу или нет.'''
+EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Собеседник поймет предлагать офлайн встречу или нет.'''
 
 EDIT_LINKS_TEXT = '''Накидай ссылок про себя: блог, твиттер, фейсбук, канал, подкаст. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
 
@@ -603,10 +651,16 @@ TOP_CITIES = [
     'Берлин',
 ]
 
-PARTICIPATE_TEXT = 'Ура! Бот подберёт собеседника, пришлёт анкету и контакт.'
+
+def participate_text(schedule):
+    return f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.'
+
+
 PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
 
-NO_CONTACT_TEXT = 'Бот ещё не назначил тебе собеседника.'
+
+def no_contact_text(schedule):
+    return f'Бот не назначил тебе собеседника. Бот составляет пары по понедельникам, очередной раунд {day_month(schedule.next_week_monday())}.'
 
 
 def show_contact_text(user):
@@ -619,13 +673,17 @@ def show_contact_text(user):
 {command_description(CONTACT_FEEDBACK_COMMAND)}'''
 
 
-CONFIRM_CONTACT_TEXT = f'Ура! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
-FAIL_CONTACT_TEXT = 'Эх, бот подберёт нового собеседника, пришлёт анкету и контакт.'
+CONFIRM_CONTACT_TEXT = f'Рад, что получилось договориться! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
+
+
+def fail_contact_text(schedule):
+    return f'Жаль, что встреча не состоится. В понедельник {day_month(schedule.next_week_monday())} бот подберёт нового собеседника, пришлёт анкету и контакт.'
 
 
 def contact_feedback_text(user):
     return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
 
+Оцени встречу:
 1 - очень плохо
 ⋮
 5 - очень хорошо
@@ -640,9 +698,7 @@ CONTACT_FEEDBACK_OPTIONS = '12345'
 
 
 def contact_feedback_state_text(user, contact):
-    return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
-Фидбек: {contact.feedback or EMPTY_SYMBOL}
-'''
+    return f'Фидбек: "{contact.feedback or EMPTY_SYMBOL}"'
 
 
 ######
@@ -668,7 +724,8 @@ async def handle_start(context, message):
         in COMMAND_DESCRIPTIONS.items()
     ])
 
-    await message.answer(text=START_TEXT)
+    text = start_text(context.schedule)
+    await message.answer(text=text)
 
 
 #####
@@ -777,19 +834,21 @@ async def handle_edit_intro_states(context, message):
 async def handle_participate(context, message):
     user = await context.db.get_user(message.from_user.id)
 
-    user.agreed_participate = context.now.datetime()
+    user.agreed_participate = context.schedule.now()
     user.paused = None
     user.pause_period = None
 
     await context.db.put_user(user)
-    await message.answer(text=PARTICIPATE_TEXT)
+
+    text = participate_text(context.schedule)
+    await message.answer(text=text)
 
 
 async def handle_pause(context, message):
     user = await context.db.get_user(message.from_user.id)
 
     user.agreed_participate = None
-    user.paused = context.now.datetime()
+    user.paused = context.schedule.now()
 
     command = parse_command(message.text)
     if command == PAUSE_WEEK_COMMAND:
@@ -810,17 +869,19 @@ async def handle_contact(context, message):
     user = await context.db.get_user(message.from_user.id)
 
     if not user.partner_user_id:
-        await message.answer(text=NO_CONTACT_TEXT)
+        text = no_contact_text(context.schedule)
+        await message.answer(text=text)
         return
 
     key = (
-        context.now.week_id(),
+        context.schedule.now_week_index(),
         user.user_id,
         user.partner_user_id
     )
     contact = await context.db.get_contact(key)
     if not contact:
-        await message.answer(text=NO_CONTACT_TEXT)
+        text = no_contact_text(context.schedule)
+        await message.answer(text=text)
         return
 
     contact.user = user
@@ -856,7 +917,8 @@ async def handle_fail_contact(context, message):
     contact.state = FAIL_STATE
     await context.db.put_contact(contact)
 
-    await message.answer(text=FAIL_CONTACT_TEXT)
+    text = fail_contact_text(context.schedule)
+    await message.answer(text=text)
 
 
 async def handle_contact_feedback(context, message):
@@ -913,7 +975,7 @@ async def handle_contact_feedback_state(context, message):
 
 
 async def handle_other(context, message):
-    await message.answer(text=START_TEXT)
+    await message.answer(text=OTHER_TEXT)
 
 
 #######
@@ -1109,7 +1171,7 @@ class BotContext:
         )
         self.dispatcher = Dispatcher(self.bot)
         self.db = DB()
-        self.now = Now()
+        self.schedule = Schedule()
 
 
 BotContext.handle_start = handle_start
@@ -1143,7 +1205,7 @@ BotContext.run = run
 
 ######
 #
-#   TIME
+#   SCHEDULE
 #
 ####
 
@@ -1152,18 +1214,27 @@ START_DATE = Datetime.fromisoformat('2022-08-15')
 START_DATE -= Timedelta(days=START_DATE.weekday())  # monday
 
 
-def week_id(datetime):
+def week_index(datetime):
     return (datetime - START_DATE).days // 7
 
 
-now = Datetime.utcnow
+def week_index_monday(index):
+    return START_DATE + Timedelta(days=7 * index)
 
 
-class Now:
-    datetime = now
+def monday_sunday(monday):
+    return monday + Timedelta(days=6)
 
-    def week_id(self):
-        return week_id(self.datetime())
+
+class Schedule:
+    now = Datetime.utcnow
+
+    def now_week_index(self):
+        return week_index(self.now())
+
+    def next_week_monday(self):
+        next_week_index = self.now_week_index() + 1
+        return week_index_monday(next_week_index)
 
 
 ######
