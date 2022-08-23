@@ -147,8 +147,8 @@ def user_url(user_id):
 def find_user(users, username=None, user_id=None):
     for user in users:
         if (
-            username and user.username == username
-            or user_id and user.user_id == user_id
+                username and user.username == username
+                or user_id and user.user_id == user_id
         ):
             return user
 
