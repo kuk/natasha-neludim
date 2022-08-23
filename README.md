@@ -218,21 +218,23 @@ yc serverless trigger resume default \
   --folder-name natasha-neludim
 ```
 
+Создать окружение, установить зависимости.
+
+```bash
+pyenv virtualenv 3.9.10 neludim
+pyenv activate neludim
+
+pip install \
+  -r requirements/test.txt \
+  -r requirements/main.txt
+
+pip install -e .
+```
+
 Трюк чтобы загрузить окружение из `.env`.
 
 ```bash
 export $(cat .env | xargs)
-```
-
-Установить зависимости для тестов.
-
-```bash
-pip install \
-  pytest-aiohttp \
-  pytest-asyncio \
-  pytest-cov \
-  pytest-flakes \
-  pytest-pycodestyle
 ```
 
 Прогнать линтер, тесты.

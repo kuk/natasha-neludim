@@ -3,13 +3,13 @@ REGISTRY = cr.yandex/$(REGISTRY_ID)
 REMOTE = $(REGISTRY)/$(IMAGE)
 
 test-lint:
-	pytest -vv --pycodestyle --flakes main.py
+	pytest -vv --pycodestyle --flakes --ignore neludim/tests neludim
 
 test-key:
-	pytest -vv -s -k $(KEY) test.py
+	pytest -vv -s -k $(KEY) neludim
 
 test-cov:
-	pytest -vv --cov-report html --cov main test.py
+	pytest -vv --cov-report html --cov neludim neludim
 
 image:
 	docker build -t $(IMAGE) .
@@ -22,7 +22,7 @@ deploy-bot:
 	yc serverless container revision deploy \
 		--container-name bot \
 		--image $(REGISTRY)/natasha-neludim:latest \
-		--args bot \
+		--args bot-webhook \
 		--cores 1 \
 		--memory 256MB \
 		--concurrency 16 \
@@ -38,7 +38,7 @@ deploy-trigger:
 	yc serverless container revision deploy \
 		--container-name trigger \
 		--image $(REGISTRY)/natasha-neludim:latest \
-		--args trigger \
+		--args trigger-webhook \
 		--cores 1 \
 		--memory 256MB \
 		--concurrency 16 \
@@ -58,4 +58,4 @@ clean:
 		-o -name .DS_Store \
 		| xargs rm -rf
 
-	rm -rf dist/ build/ .pytest_cache/ .cache/
+	rm -rf dist/ build/ .pytest_cache/ .cache/ .coverage

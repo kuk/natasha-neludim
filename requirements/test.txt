@@ -1,0 +1,6 @@
+pytest==7.1.2
+pytest-aiohttp==1.0.4
+pytest-asyncio==0.19.0
+pytest-cov==3.0.0
+pytest-flakes==4.0.5
+pytest-pycodestyle==2.3.0

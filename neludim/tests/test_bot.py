@@ -1,97 +1,37 @@
 
-import asyncio
 from json import (
     loads as parse_json,
     dumps as format_json
 )
 
-import pytest
-
 from aiogram.types import Update
 
-from main import (
+import pytest
+
+from neludim.bot.bot import (
     Bot,
     Dispatcher,
-
-    DB,
-    Context,
-    setup_middlewares,
-    setup_filters,
-    setup_handlers,
-
+)
+from neludim.bot.middlewares import setup_middlewares
+from neludim.bot.filters import setup_filters
+from neludim.bot.handlers import setup_handlers
+from neludim.schedule import (
     Schedule,
     START_DATE,
-
+)
+from neludim.db import DB
+from neludim.context import Context
+from neludim.obj import (
     User,
     Intro,
+    Contact,
+)
+from neludim.const import (
     MONTH,
 
-    Contact,
     CONFIRM_STATE,
     FAIL_STATE,
 )
-
-
-######
-#
-#   DB
-#
-#####
-
-
-@pytest.fixture(scope='session')
-def event_loop():
-    return asyncio.get_event_loop()
-
-
-@pytest.fixture(scope='session')
-async def db():
-    db = DB()
-    await db.connect()
-    yield db
-    await db.close()
-
-
-async def test_db_chat(db):
-    await db.set_chat_state(1, '2')
-    assert '2' == await db.get_chat_state(1)
-
-
-async def test_db_user(db):
-    user = User(
-        user_id=1,
-        intro=Intro(
-            name='abc'
-        )
-    )
-
-    await db.put_user(user)
-    assert user == await db.get_user(user_id=user.user_id)
-
-    await db.delete_user(user_id=user.user_id)
-    assert await db.get_user(user_id=user.user_id) is None
-    
-
-async def test_db_contact(db):
-    contact = Contact(
-        week_index=0,
-        user_id=1,
-        partner_user_id=2
-    )
-
-    await db.put_contact(contact)
-    assert contact == await db.get_contact(contact.key)
-
-    await db.delete_contact(contact.key)
-    assert await db.get_contact(contact.key) is None
-
-
-
-#######
-#
-#  BOT
-#
-######
 
 
 class FakeBot(Bot):
@@ -204,7 +144,7 @@ def match_trace(trace, etalon):
 START_JSON = '{"message": {"message_id": 2, "from": {"id": 113947584, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "chat": {"id": 113947584, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1659800990, "text": "/start", "entities": [{"type": "bot_command", "offset": 0, "length": 6}]}}'
 
 
-async def test_bot_start(context):
+async def test_start(context):
     await process_update(context, START_JSON)
     assert match_trace(context.bot.trace, [
         ['setMyCommands', '{"commands"'],
@@ -218,7 +158,7 @@ async def test_bot_start(context):
 ######
 
 
-async def test_bot_edit_name(context):
+async def test_edit_name(context):
     context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_intro'))
     await process_update(context, START_JSON.replace('/start', '/edit_name'))
@@ -232,7 +172,7 @@ async def test_bot_edit_name(context):
     assert context.db.users[0].intro.name == 'Alexander Kukushkin'
 
 
-async def test_bot_edit_city(context):
+async def test_edit_city(context):
     context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_city'))
     await process_update(context, START_JSON.replace('/start', 'Moscow'))
@@ -244,7 +184,7 @@ async def test_bot_edit_city(context):
     assert context.db.users[0].intro.city == 'Moscow'
 
 
-async def test_bot_edit_links(context):
+async def test_edit_links(context):
     context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_links'))
     await process_update(context, START_JSON.replace('/start', 'vk.com/alexkuk'))
@@ -256,7 +196,7 @@ async def test_bot_edit_links(context):
     assert context.db.users[0].intro.links == 'vk.com/alexkuk'
 
 
-async def test_bot_edit_about(context):
+async def test_edit_about(context):
     context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/edit_about'))
     await process_update(context, START_JSON.replace('/start', 'Закончил ШАД, работал в Яндексе'))
@@ -268,14 +208,14 @@ async def test_bot_edit_about(context):
     assert context.db.users[0].intro.about == 'Закончил ШАД, работал в Яндексе'
 
 
-async def test_bot_empty_edit(context):
+async def test_empty_edit(context):
     context.db.users = [User(user_id=113947584, intro=Intro(name='A K'))]
     await process_update(context, START_JSON.replace('/start', '/edit_name'))
     await process_update(context, START_JSON.replace('/start', '/empty'))
     assert context.db.users[0].intro.name is None
 
 
-async def test_bot_cancel_edit(context):
+async def test_cancel_edit(context):
     context.db.users = [User(user_id=113947584, intro=Intro(name='A K', links='vk.com/alexkuk'))]
     await process_update(context, START_JSON.replace('/start', '/edit_links'))
     await process_update(context, START_JSON.replace('/start', '/cancel'))
@@ -288,7 +228,7 @@ async def test_bot_cancel_edit(context):
 #######
 
 
-async def test_bot_participate(context):
+async def test_participate(context):
     context.db.users = [User(user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/participate'))
 
@@ -301,7 +241,7 @@ async def test_bot_participate(context):
     assert user.paused is None
 
 
-async def test_bot_pause(context):
+async def test_pause(context):
     context.db.users = [User(user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/pause_month'))
 
@@ -320,7 +260,7 @@ async def test_bot_pause(context):
 ######
 
 
-async def test_bot_show_no_contact(context):
+async def test_show_no_contact(context):
     context.db.users = [User(user_id=113947584, partner_user_id=None)]
     await process_update(context, START_JSON.replace('/start', '/show_contact'))
 
@@ -329,7 +269,7 @@ async def test_bot_show_no_contact(context):
     ])
 
 
-async def test_bot_show_contact(context):
+async def test_show_contact(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584, intro=Intro())]
     context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/show_contact'))
@@ -339,7 +279,7 @@ async def test_bot_show_contact(context):
     ])
 
 
-async def test_bot_confirm_contact(context):
+async def test_confirm_contact(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
     context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/confirm_contact'))
@@ -350,7 +290,7 @@ async def test_bot_confirm_contact(context):
     assert context.db.contacts[0].state == CONFIRM_STATE
 
 
-async def test_bot_fail_contact(context):
+async def test_fail_contact(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
     context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/fail_contact'))
@@ -361,7 +301,7 @@ async def test_bot_fail_contact(context):
     assert context.db.contacts[0].state == FAIL_STATE
 
 
-async def test_bot_contact_feedback(context):
+async def test_contact_feedback(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584, intro=Intro())]
     context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584)]
     await process_update(context, START_JSON.replace('/start', '/contact_feedback'))
@@ -379,7 +319,7 @@ async def test_bot_contact_feedback(context):
 #######
 
 
-async def test_bot_other(context):
+async def test_other(context):
     await process_update(context, START_JSON.replace('/start', 'abc'))
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Бот ответчает только на команды']

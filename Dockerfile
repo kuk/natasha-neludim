@@ -1,12 +1,12 @@
 FROM python:3.9.13-slim
 
-RUN pip install --no-cache-dir \
-    aiohttp==3.8.1 \
-    aiogram==2.21 \
-    aiobotocore==2.3.4
+COPY requirements requirements
+RUN pip install --disable-pip-version-check --no-cache-dir -r requirements/main.txt
 
-COPY main.py .
+COPY neludim neludim
+COPY setup.py .
+RUN pip install --disable-pip-version-check --no-cache-dir -e .
 
 # Exec form is required, otherwise args are ignored
 # https://docs.docker.com/engine/reference/builder/#exec-form-entrypoint-example
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["neludim"]
