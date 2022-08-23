@@ -208,10 +208,13 @@ yc serverless trigger create timer default \
   --folder-name natasha-neludim
 ```
 
-Остановить триггер.
+Остановить, запустить триггер.
 
 ```bash
 yc serverless trigger pause default \
+  --folder-name natasha-neludim
+
+yc serverless trigger resume default \
   --folder-name natasha-neludim
 ```
 
