@@ -14,7 +14,10 @@ from main import (
     Dispatcher,
 
     DB,
-    BotContext,
+    Context,
+    setup_middlewares,
+    setup_filters,
+    setup_handlers,
 
     Schedule,
     START_DATE,
@@ -151,9 +154,9 @@ class FakeSchedule(Schedule):
         return START_DATE
 
 
-class FakeBotContext(BotContext):
+class FakeContext(Context):
     def __init__(self):
-        BotContext.__init__(self)
+        Context.__init__(self)
         self.bot = FakeBot()
         self.dispatcher = Dispatcher(self.bot)
         self.db = FakeDB()
@@ -162,10 +165,10 @@ class FakeBotContext(BotContext):
 
 @pytest.fixture(scope='function')
 def context():
-    context = FakeBotContext()
-    context.setup_middlewares()
-    context.setup_filters()
-    context.setup_handlers()
+    context = FakeContext()
+    setup_middlewares(context)
+    setup_filters(context)
+    setup_handlers(context)
 
     Bot.set_current(context.bot)
     Dispatcher.set_current(context.dispatcher)

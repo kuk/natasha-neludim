@@ -12,6 +12,7 @@ from datetime import (
     timedelta as Timedelta
 )
 from contextlib import AsyncExitStack
+from functools import partial
 
 from aiogram import (
     Bot,
@@ -985,37 +986,37 @@ async def handle_other(context, message):
 
 def setup_handlers(context):
     context.dispatcher.register_message_handler(
-        context.handle_start,
+        partial(handle_start, context),
         commands=START_COMMAND,
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_edit_intro,
+        partial(handle_edit_intro, context),
         commands=EDIT_INTRO_COMMAND
     )
     context.dispatcher.register_message_handler(
-        context.handle_edit_name,
+        partial(handle_edit_name, context),
         commands=EDIT_NAME_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_edit_city,
+        partial(handle_edit_city, context),
         commands=EDIT_CITY_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_edit_links,
+        partial(handle_edit_links, context),
         commands=EDIT_LINKS_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_edit_about,
+        partial(handle_edit_about, context),
         commands=EDIT_ABOUT_COMMAND,
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_participate,
+        partial(handle_participate, context),
         commands=PARTICIPATE_COMMAND
     )
     context.dispatcher.register_message_handler(
-        context.handle_pause,
+        partial(handle_pause, context),
         commands=[
             PAUSE_WEEK_COMMAND,
             PAUSE_MONTH_COMMAND,
@@ -1023,19 +1024,19 @@ def setup_handlers(context):
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_show_contact,
+        partial(handle_show_contact, context),
         commands=SHOW_CONTACT_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_confirm_contact,
+        partial(handle_confirm_contact, context),
         commands=CONFIRM_CONTACT_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_fail_contact,
+        partial(handle_fail_contact, context),
         commands=FAIL_CONTACT_COMMAND,
     )
     context.dispatcher.register_message_handler(
-        context.handle_contact_feedback,
+        partial(handle_contact_feedback, context),
         commands=CONTACT_FEEDBACK_COMMAND,
     )
 
@@ -1044,7 +1045,7 @@ def setup_handlers(context):
     # natively handle FSM
 
     context.dispatcher.register_message_handler(
-        context.handle_edit_intro_states,
+        partial(handle_edit_intro_states, context),
         chat_states=[
             EDIT_NAME_STATE,
             EDIT_CITY_STATE,
@@ -1053,12 +1054,12 @@ def setup_handlers(context):
         ]
     )
     context.dispatcher.register_message_handler(
-        context.handle_contact_feedback_state,
+        partial(handle_contact_feedback_state, context),
         chat_states=CONTACT_FEEDBACK_STATE,
     )
 
     context.dispatcher.register_message_handler(
-        context.handle_other
+        partial(handle_other, context)
     )
 
 
@@ -1118,15 +1119,10 @@ def setup_middlewares(context):
         context.dispatcher.middleware.setup(middleware)
 
 
-#######
-#
-#  BOT
-#
-#######
-
-
 ########
+#
 #   WEBHOOK
+#
 ######
 
 
@@ -1141,15 +1137,15 @@ async def on_shutdown(context, _):
 PORT = getenv('PORT', 8080)
 
 
-def run(context):
+def start_bot_webhook(context):
     executor.start_webhook(
         dispatcher=context.dispatcher,
 
         webhook_path='/',
         port=PORT,
 
-        on_startup=context.on_startup,
-        on_shutdown=context.on_shutdown,
+        on_startup=partial(on_startup, context),
+        on_shutdown=partial(on_shutdown, context),
 
         # Disable aiohttp "Running on ... Press CTRL+C"
         # Polutes YC Logging
@@ -1158,11 +1154,13 @@ def run(context):
 
 
 ########
+#
 #   CONTEXT
+#
 ######
 
 
-class BotContext:
+class Context:
     def __init__(self):
         self.bot = Bot(
             token=BOT_TOKEN,
@@ -1172,35 +1170,6 @@ class BotContext:
         self.dispatcher = Dispatcher(self.bot)
         self.db = DB()
         self.schedule = Schedule()
-
-
-BotContext.handle_start = handle_start
-BotContext.handle_edit_intro = handle_edit_intro
-BotContext.handle_edit_name = handle_edit_name
-BotContext.handle_edit_city = handle_edit_city
-BotContext.handle_edit_links = handle_edit_links
-BotContext.handle_edit_about = handle_edit_about
-BotContext.handle_edit_intro_states = handle_edit_intro_states
-
-BotContext.handle_participate = handle_participate
-BotContext.handle_pause = handle_pause
-
-BotContext.handle_show_contact = handle_show_contact
-BotContext.handle_confirm_contact = handle_confirm_contact
-BotContext.handle_fail_contact = handle_fail_contact
-
-BotContext.handle_contact_feedback = handle_contact_feedback
-BotContext.handle_contact_feedback_state = handle_contact_feedback_state
-
-BotContext.handle_other = handle_other
-
-BotContext.setup_middlewares = setup_middlewares
-BotContext.setup_filters = setup_filters
-BotContext.setup_handlers = setup_handlers
-
-BotContext.on_startup = on_startup
-BotContext.on_shutdown = on_shutdown
-BotContext.run = run
 
 
 ######
@@ -1244,9 +1213,13 @@ class Schedule:
 #####
 
 
+def bot_main():
+    context = Context()
+    setup_middlewares(context)
+    setup_filters(context)
+    setup_handlers(context)
+    start_bot_webhook(context)
+
+
 if __name__ == '__main__':
-    context = BotContext()
-    context.setup_middlewares()
-    context.setup_filters()
-    context.setup_handlers()
-    context.run()
+    bot_main()
