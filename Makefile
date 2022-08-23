@@ -18,10 +18,27 @@ push:
 	docker tag $(IMAGE) $(REMOTE)
 	docker push $(REMOTE)
 
-deploy:
+deploy-bot:
 	yc serverless container revision deploy \
-		--container-name default \
+		--container-name bot \
 		--image $(REGISTRY)/natasha-neludim:latest \
+		--args bot \
+		--cores 1 \
+		--memory 256MB \
+		--concurrency 16 \
+		--execution-timeout 30s \
+		--environment BOT_TOKEN=$(BOT_TOKEN) \
+		--environment AWS_KEY_ID=$(AWS_KEY_ID) \
+		--environment AWS_KEY=$(AWS_KEY) \
+		--environment DYNAMO_ENDPOINT=$(DYNAMO_ENDPOINT) \
+		--service-account-id $(SERVICE_ACCOUNT_ID) \
+		--folder-name natasha-neludim
+
+deploy-trigger:
+	yc serverless container revision deploy \
+		--container-name trigger \
+		--image $(REGISTRY)/natasha-neludim:latest \
+		--args trigger \
 		--cores 1 \
 		--memory 256MB \
 		--concurrency 16 \

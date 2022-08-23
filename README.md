@@ -138,11 +138,10 @@ aws dynamodb scan \
 
 ```bash
 yc container registry create default --folder-name natasha-neludim
-
 id: {REGISTRY_ID}
 ```
 
-Дать права сервисному аккаунту читать из реестра. Интеграция с YC Serverless Container.
+Дать права сервисному аккаунту читать из реестра. Интеграция с YC Serverless Containers.
 
 ```bash
 yc container registry add-access-binding default \
@@ -151,18 +150,38 @@ yc container registry add-access-binding default \
   --folder-name natasha-neludim
 ```
 
-Создать Serverless Container. Записать `id` в `.env`.
+Создать Serverless Containers. Записать `id` в `.env`.
 
 ```bash
-yc serverless container create --name default --folder-name natasha-neludim
+yc serverless container create --name bot --folder-name natasha-neludim
 
-id: {CONTAINER_ID}
+id: {BOT_CONTAINER_ID}
+
+yc serverless container create --name trigger --folder-name natasha-neludim
+
+id: {TRIGGER_CONTAINER_ID}
 ```
 
-Разрешить без токена. Телеграм дергает вебхук.
+Разрешить `bot` без токена. Телеграм дергает вебхук.
 
 ```bash
-yc serverless container allow-unauthenticated-invoke default \
+yc serverless container allow-unauthenticated-invoke bot \
+  --folder-name natasha-neludim
+```
+
+Сделать `trigger` приватным.
+
+```bash
+yc serverless container deny-unauthenticated-invoke trigger \
+  --folder-name natasha-neludim
+```
+
+Только у сервисного аккаунта право вызывать.
+
+```bash
+yc serverless container add-access-binding trigger \
+  --role serverless.containers.invoker \
+  --service-account-name natasha-neludim \
   --folder-name natasha-neludim
 ```
 
@@ -175,8 +194,25 @@ yc log read default --follow --folder-name natasha-neludim
 Прицепить вебхук.
 
 ```bash
-WEBHOOK_URL=https://${CONTAINER_ID}.containers.yandexcloud.net/
+WEBHOOK_URL=https://${BOT_CONTAINER_ID}.containers.yandexcloud.net/
 curl --url https://api.telegram.org/bot${BOT_TOKEN}/setWebhook\?url=${WEBHOOK_URL}
+```
+
+Создать триггер.
+
+```bash
+yc serverless trigger create timer default \
+  --cron-expression "* * * * ? *" \
+  --invoke-container-name trigger \
+  --invoke-container-service-account-name natasha-neludim \
+  --folder-name natasha-neludim
+```
+
+Остановить триггер.
+
+```bash
+yc serverless trigger pause default \
+  --folder-name natasha-neludim
 ```
 
 Трюк чтобы загрузить окружение из `.env`.
@@ -205,5 +241,7 @@ make test-lint test-key KEY=test
 Собрать образ, загрузить его в реестр, задеплоить
 
 ```bash
-make image push deploy
+make image push
+make deploy-bot
+make deploy-trigger
 ```

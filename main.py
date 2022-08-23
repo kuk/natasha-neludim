@@ -1,4 +1,6 @@
 
+import sys
+import argparse
 import json
 import logging
 from os import getenv
@@ -31,6 +33,8 @@ from aiogram.dispatcher.filters import BoundFilter
 from aiogram.dispatcher.handler import CancelHandler
 
 import aiobotocore.session
+
+from aiohttp import web
 
 
 #######
@@ -1153,25 +1157,6 @@ def start_bot_webhook(context):
     )
 
 
-########
-#
-#   CONTEXT
-#
-######
-
-
-class Context:
-    def __init__(self):
-        self.bot = Bot(
-            token=BOT_TOKEN,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
-        self.dispatcher = Dispatcher(self.bot)
-        self.db = DB()
-        self.schedule = Schedule()
-
-
 ######
 #
 #   SCHEDULE
@@ -1206,14 +1191,67 @@ class Schedule:
         return week_index_monday(next_week_index)
 
 
+########
+#
+#   CONTEXT
+#
+######
+
+
+class Context:
+    def __init__(self):
+        self.bot = Bot(
+            token=BOT_TOKEN,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+        self.dispatcher = Dispatcher(self.bot)
+        self.db = DB()
+        self.schedule = Schedule()
+
+
 ######
 #
-#   MAIN
+#  TRIGGER
+#
+######
+
+
+# {
+#     "messages": [
+# 	 {
+# 	     "event_metadata": {
+# 		 "event_type": "yandex.cloud.events.serverless.triggers.TimerMessage",
+# 		 "created_at": "2022-08-23T10:31:10.869181208Z",
+# 		 "folder_id": "b1gvn9housafmd323832"
+# 	     },
+# 	     "trigger_id": "a1s8tlitsoh648k1sun5"
+# 	 }
+#     }
+
+
+async def handle_trigger(request):
+    text = await request.text()
+    print(text)
+    return web.json_response({'status': 'ok'})
+
+
+def start_trigger_webhook(context):
+    app = web.Application()
+    app.add_routes([
+        web.post('/', handle_trigger)
+    ])
+    web.run_app(app)
+
+
+######
+#
+#   CLI
 #
 #####
 
 
-def bot_main():
+def cli_bot(args):
     context = Context()
     setup_middlewares(context)
     setup_filters(context)
@@ -1221,5 +1259,37 @@ def bot_main():
     start_bot_webhook(context)
 
 
+def cli_trigger(args):
+    context = Context()
+    start_trigger_webhook(context)
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(prog='neludim')
+    parser.set_defaults(function=None)
+    subs = parser.add_subparsers()
+
+    sub = subs.add_parser('bot')
+    sub.set_defaults(function=cli_bot)
+
+    sub = subs.add_parser('trigger')
+    sub.set_defaults(function=cli_trigger)
+
+    return parser
+
+
+def run(parser, argv):
+    args = parser.parse_args(argv[1:])
+    if not args.function:
+        parser.print_help()
+        parser.exit()
+
+    try:
+        args.function(args)
+    except (KeyboardInterrupt, BrokenPipeError):
+        pass
+
+
 if __name__ == '__main__':
-    bot_main()
+    parser = build_parser()
+    run(parser, sys.argv)
