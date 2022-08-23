@@ -49,3 +49,13 @@ deploy-trigger:
 		--environment DYNAMO_ENDPOINT=$(DYNAMO_ENDPOINT) \
 		--service-account-id $(SERVICE_ACCOUNT_ID) \
 		--folder-name natasha-neludim
+
+clean:
+	find . \
+		-name '*.pyc' \
+		-o -name __pycache__ \
+		-o -name .ipynb_checkpoints \
+		-o -name .DS_Store \
+		| xargs rm -rf
+
+	rm -rf dist/ build/ .pytest_cache/ .cache/
