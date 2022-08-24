@@ -24,9 +24,9 @@ def monday_sunday(monday):
 class Schedule:
     now = Datetime.utcnow
 
-    def now_week_index(self):
+    def current_week_index(self):
         return week_index(self.now())
 
     def next_week_monday(self):
-        next_week_index = self.now_week_index() + 1
+        next_week_index = self.current_week_index() + 1
         return week_index_monday(next_week_index)

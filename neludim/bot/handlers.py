@@ -234,7 +234,7 @@ async def handle_contact(context, message):
         return
 
     key = (
-        context.schedule.now_week_index(),
+        context.schedule.current_week_index(),
         user.user_id,
         user.partner_user_id
     )
