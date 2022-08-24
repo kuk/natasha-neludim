@@ -42,6 +42,16 @@ def ask_agree_participate_text(schedule):
 Бот просит подтверждать участие каждую неделю. Подбирает пару только из тех, кто согласился. Это уменьшает число несостоявшихся встреч.'''
 
 
+ASK_EDIT_INTRO_TEXT = '''Заполни, пожалуйста, профиль: ссылки /edit_links или "о себе" /edit_about.
+
+Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
+
+
+# MAYBE TODO
+# Предлагаю тебе заполнить новый раздел "о себе" в анкете /edit_about.
+# Упростит задачу собеседнику, быстрее поймёт чем ты занимаешься, не придётся ходить по ссылкам.
+
+
 def ask_confirm_contact_text(user):
     return f'''Получилось договориться с <a href="{user_url(user.user_id)}">{user_mention(user)}</a> о встрече?
 
@@ -65,21 +75,6 @@ def ask_contact_feedback_text(user):
 ######
 
 
-def find_contacts(contacts, week_index=None):
-    for contact in contacts:
-        if week_index is not None and contact.week_index == week_index:
-            yield contact
-
-
-def find_user(users, user_id=None, username=None):
-    for user in users:
-        if (
-                user_id is not None and user.user_id == user_id
-                or username is not None and user.username == username
-        ):
-            return user
-
-
 async def ask_agree_participate(context):
     users = await context.db.read_users()
     next_week_index = context.schedule.current_week_index() + 1
@@ -99,7 +94,6 @@ async def ask_agree_participate(context):
                 user.agreed_participate
                 and week_index(user.agreed_participate) + 1 == next_week_index
         ):
-            # Alread agreed to participate next week
             continue
 
         text = ask_agree_participate_text(context.schedule)
@@ -107,6 +101,41 @@ async def ask_agree_participate(context):
             chat_id=user.user_id,
             text=text
         ))
+
+    await broadcast(context.bot, tasks)
+
+
+def find_contacts(contacts, week_index=None):
+    for contact in contacts:
+        if week_index is not None and contact.week_index == week_index:
+            yield contact
+
+
+def find_user(users, user_id=None, username=None):
+    for user in users:
+        if (
+                user_id is not None and user.user_id == user_id
+                or username is not None and user.username == username
+        ):
+            return user
+
+
+async def ask_edit_intro(context):
+    users = await context.db.read_users()
+    next_week_index = context.schedule.current_week_index() + 1
+
+    tasks = []
+    for user in users:
+        if (
+                user.agreed_participate
+                and week_index(user.agreed_participate) + 1 == next_week_index
+                and not user.intro.links
+                and not user.intro.about
+        ):
+            tasks.append(BroadcastTask(
+                chat_id=user.user_id,
+                text=ASK_EDIT_INTRO_TEXT
+            ))
 
     await broadcast(context.bot, tasks)
 

@@ -13,15 +13,32 @@ from neludim.const import (
 )
 from neludim.obj import (
     User,
+    Intro,
     Contact,
 )
 from neludim.schedule import week_index_monday
     
 from neludim.ops import (
     ask_agree_participate,
+    ask_edit_intro,
     ask_confirm_contact,
     ask_contact_feedback,
 )
+
+
+async def test_ask_edit_intro(context):
+    agreed_participate = week_index_monday(context.schedule.current_week_index())
+    context.db.users = [
+        User(user_id=0),
+        User(user_id=1, agreed_participate=agreed_participate, intro=Intro()),
+        User(user_id=2, agreed_participate=agreed_participate, intro=Intro(links='links')),
+        User(user_id=3, agreed_participate=agreed_participate, intro=Intro(about='about')),
+        User(user_id=4, intro=Intro()),
+    ]
+    await ask_edit_intro(context)
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '"chat_id": 1'],
+    ])
 
 
 async def test_ask_agree_participate(context):
