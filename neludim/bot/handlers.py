@@ -433,7 +433,6 @@ async def handle_contact(context, message):
         await message.answer(text=text)
         return
 
-    contact.user = user
     return contact
 
 
@@ -482,7 +481,8 @@ async def handle_contact_feedback(context, message):
     for option in CONTACT_FEEDBACK_OPTIONS:
         markup.insert(option)
 
-    text = contact_feedback_text(contact.user, contact)
+    partner_user = await context.db.get_user(contact.partner_user_id)
+    text = contact_feedback_text(partner_user, contact)
     await message.answer(
         text=text,
         reply_markup=markup
@@ -507,7 +507,8 @@ async def handle_contact_feedback_state(context, message):
 
         await context.db.put_contact(contact)
 
-    text = contact_feedback_state_text(contact.user, contact)
+    partner_user = await context.db.get_user(contact.partner_user_id)
+    text = contact_feedback_state_text(partner_user, contact)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
