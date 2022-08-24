@@ -3,26 +3,8 @@ import sys
 import argparse
 
 from .context import Context
-
-
-def bot_webhook(args):
-    from .bot.middlewares import setup_middlewares
-    from .bot.filters import setup_filters
-    from .bot.handlers import setup_handlers
-    from .bot.webhook import start_webhook
-
-    context = Context()
-    setup_middlewares(context)
-    setup_filters(context)
-    setup_handlers(context)
-    start_webhook(context)
-
-
-def trigger_webhook(args):
-    from .trigger import start_webhook
-
-    context = Context()
-    start_webhook(context)
+from .bot.webhook import start_webhook as bot_webhook
+from .trigger import start_webhook as trigger_webhook
 
 
 def build_parser():
@@ -46,7 +28,8 @@ def run(parser, argv):
         parser.exit()
 
     try:
-        args.function(args)
+        context = Context()
+        args.function(context)
     except (KeyboardInterrupt, BrokenPipeError):
         pass
 

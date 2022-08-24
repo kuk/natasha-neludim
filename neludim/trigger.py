@@ -26,4 +26,7 @@ def start_webhook(context):
     app.add_routes([
         web.post('/', handle_trigger)
     ])
-    web.run_app(app)
+    web.run_app(
+        app,
+        print=None
+    )
