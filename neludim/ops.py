@@ -144,23 +144,23 @@ async def ask_confirm_contact(context):
     users = await context.db.read_users()
 
     contacts = await context.db.read_contacts()
-    contacts = find_contacts(
+    contacts = list(find_contacts(
         contacts,
         week_index=context.schedule.current_week_index()
-    )
+    ))
 
-    tasks = []
     skip_user_ids = set()
     for contact in contacts:
+        # If skip a->b, also skip b->a
         if (
                 contact.state in (CONFIRM_STATE, FAIL_STATE)
                 or contact.feedback
         ):
             skip_user_ids.add(contact.user_id)
             skip_user_ids.add(contact.partner_user_id)
-            continue
 
-        # If skip a->b, also skip b->a
+    tasks = []
+    for contact in contacts:
         if contact.user_id in skip_user_ids:
             continue
 
