@@ -257,3 +257,15 @@ CONTACT_FEEDBACK_OPTIONS = '12345'
 
 def contact_feedback_state_text(user, contact):
     return f'Фидбек: "{contact.feedback or EMPTY_SYMBOL}"'
+
+
+#######
+#  OPS
+####
+
+
+def broadcast_confirm_contact_text(user):
+    return f'''Получилось договориться с <a href="{user_url(user.user_id)}">{user_mention(user)}</a> о встрече?
+
+/{CONFIRM_CONTACT_COMMAND} - да, договорились
+/{FAIL_CONTACT_COMMAND} - нет, не договорились/не отвечает'''
