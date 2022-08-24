@@ -56,7 +56,7 @@ def ask_confirm_contact_text(user):
     return f'''Получилось договориться с <a href="{user_url(user.user_id)}">{user_mention(user)}</a> о встрече?
 
 /{CONFIRM_CONTACT_COMMAND} - да, договорились
-/{FAIL_CONTACT_COMMAND} - нет, не договорились/не отвечает'''
+/{FAIL_CONTACT_COMMAND} - не договорились/не отвечает'''
 
 
 def ask_contact_feedback_text(user):
