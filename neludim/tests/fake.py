@@ -117,11 +117,11 @@ def match_trace(trace, etalon):
     if len(trace) != len(etalon):
         return False
 
-    for (method, json), (etalon_method, etalon_match) in zip(trace, etalon):
+    for (method, json), (etalon_method, etalon_pattern) in zip(trace, etalon):
         if method != etalon_method:
             return False
 
-        if etalon_match not in json:
+        if etalon_pattern not in json:
             return False
 
     return True

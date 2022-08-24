@@ -5,43 +5,52 @@ from neludim.tests.fake import (
 )
 
 from neludim.const import (
-    CONFIRM_STATE
+    CONFIRM_STATE,
+    FAIL_STATE,
 )
 from neludim.obj import (
     User,
-    Contact
+    Contact,
 )
 from neludim.ops import (
-    broadcast_confirm_contact,
+    confirm_contact_op,
+    contact_feedback_op,
 )
+
+
+USERS = [
+    User(user_id=1, username='a'),
+    User(user_id=2, username='b'),
+    User(user_id=3, username='c'),
+    User(user_id=4, username='d'),
+]
 
 
 async def test_broadcast_confirm_contact(context):
-    context.db.users = [
-        User(user_id=1, username='1'),
-        User(user_id=2, username='2')
-    ]
+    context.db.users = USERS
     context.db.contacts = [
         Contact(week_index=0, user_id=1, partner_user_id=2),
         Contact(week_index=0, user_id=2, partner_user_id=1),
+        Contact(week_index=0, user_id=3, partner_user_id=4, state=CONFIRM_STATE),
+        Contact(week_index=0, user_id=4, partner_user_id=3),
     ]
     
-    await broadcast_confirm_contact(context)
+    await confirm_contact_op(context)
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Получилось договориться'],
-        ['sendMessage', 'Получилось договориться'],
+        ['sendMessage', '@b'],
+        ['sendMessage', '@a'],
     ])
 
 
-async def test_broadcast_confirm_contact_skip(context):
-    context.db.users = [
-        User(user_id=1, username='1'),
-        User(user_id=2, username='2')
-    ]
+async def test_broadcast_contact_feedback(context):
+    context.db.users = USERS
     context.db.contacts = [
-        Contact(week_index=0, user_id=1, partner_user_id=2, state=CONFIRM_STATE),
-        Contact(week_index=0, user_id=2, partner_user_id=1),
+        Contact(week_index=0, user_id=1, partner_user_id=2, state=FAIL_STATE),
+        Contact(week_index=0, user_id=2, partner_user_id=1, feedback='1'),
+        Contact(week_index=0, user_id=3, partner_user_id=4, state=CONFIRM_STATE),
     ]
     
-    await broadcast_confirm_contact(context)
-    assert match_trace(context.bot.trace, [])
+    await contact_feedback_op(context)
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '@d'],
+    ])
