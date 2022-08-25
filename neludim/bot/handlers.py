@@ -59,7 +59,7 @@ from neludim.obj import (
 
 
 COMMAND_DESCRIPTIONS = {
-    START_COMMAND: 'инструкция, список команд',
+    START_COMMAND: 'с чего начать',
 
     EDIT_INTRO_COMMAND: 'поменять анкету',
     EDIT_NAME_COMMAND: 'поменять имя',
@@ -81,28 +81,6 @@ COMMAND_DESCRIPTIONS = {
 }
 
 
-def command_description(command):
-    return f'/{command} - {COMMAND_DESCRIPTIONS[command]}'
-
-
-COMMANDS_TEXT = f'''{command_description(EDIT_INTRO_COMMAND)}
-{command_description(EDIT_NAME_COMMAND)}
-{command_description(EDIT_CITY_COMMAND)}
-{command_description(EDIT_LINKS_COMMAND)}
-{command_description(EDIT_ABOUT_COMMAND)}
-
-{command_description(PARTICIPATE_COMMAND)}
-{command_description(PAUSE_WEEK_COMMAND)}
-{command_description(PAUSE_MONTH_COMMAND)}
-
-{command_description(SHOW_CONTACT_COMMAND)}
-{command_description(CONFIRM_CONTACT_COMMAND)}
-{command_description(FAIL_CONTACT_COMMAND)}
-{command_description(CONTACT_FEEDBACK_COMMAND)}
-
-{command_description(START_COMMAND)}'''
-
-
 ######
 #  START
 ######
@@ -111,22 +89,13 @@ COMMANDS_TEXT = f'''{command_description(EDIT_INTRO_COMMAND)}
 def start_text(schedule):
     return f'''Бот организует random coffee для сообщества @natural_language_processing.
 
-Инструкция:
-1. Заполни короткую анкету /{EDIT_INTRO_COMMAND}.
-2. Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
-3. Заходи в закрытый чат для первых участников https://t.me/+-A_Q6y-dODY3OTli. Там разработчик бота @alexkuk принимает баг репорты, рассказывает о новых фичах.
+С чего начать?
+- Заполни короткую анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+- Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
 
-{COMMANDS_TEXT}'''
-
-
-######
-#  OTHER
-######
-
-
-OTHER_TEXT = f'''Бот ответчает только на команды.
-
-{COMMANDS_TEXT}'''
+/{EDIT_INTRO_COMMAND} - заполнить анкету
+/{PARTICIPATE_COMMAND} - участвовать во встречах
+/{SHOW_CONTACT_COMMAND} - контакт и анкета собеседника'''
 
 
 ######
@@ -147,27 +116,33 @@ def intro_text(intro):
 def edit_intro_text(intro):
     return f'''{intro_text(intro)}
 
-{command_description(EDIT_NAME_COMMAND)}
-{command_description(EDIT_CITY_COMMAND)}
-{command_description(EDIT_LINKS_COMMAND)}
-{command_description(EDIT_ABOUT_COMMAND)}
-
-{command_description(CANCEL_COMMAND)}
-{command_description(EMPTY_COMMAND)}'''
+/{EDIT_NAME_COMMAND} - поменять имя
+/{EDIT_CITY_COMMAND} - поменять город
+/{EDIT_LINKS_COMMAND} - поменять ссылки
+/{EDIT_ABOUT_COMMAND} - поменять "о себе"'''
 
 
-EDIT_NAME_TEXT = '''Напиши своё настоящее имя. Собеседник поймёт, как к тебе обращаться.'''
+EDIT_NAME_TEXT = f'''Напиши своё настоящее имя. Собеседник поймёт, как к тебе обращаться.
 
-EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Собеседник поймет предлагать офлайн встречу или нет.'''
+/{CANCEL_COMMAND} - отменить
+/{EMPTY_COMMAND} - оставить пустым'''
 
-EDIT_LINKS_TEXT = '''Накидай ссылок про себя: блог, твиттер, фейсбук, канал, подкаст. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+EDIT_CITY_TEXT = f'''Напиши город, в котором живёшь. Или выбери из топа популярных. Собеседник поймет предлагать офлайн встречу или нет.
+
+/{CANCEL_COMMAND} - отменить
+/{EMPTY_COMMAND} - оставить пустым'''
+
+EDIT_LINKS_TEXT = f'''Накидай ссылок про себя: блог, твиттер, фейсбук, канал, подкаст. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
 
 Примеры
 - http://lab.alexkuk.ru, https://github.com/kuk, https://habr.com/ru/users/alexanderkuk/
 - https://www.linkedin.com/in/alexkuk/, https://vk.com/alexkuk
-- http://val.maly.hk'''
+- http://val.maly.hk
 
-EDIT_ABOUT_TEXT = '''Напиши о себе. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+/{CANCEL_COMMAND} - отменить
+/{EMPTY_COMMAND} - оставить пустым'''
+
+EDIT_ABOUT_TEXT = f'''Напиши о себе. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
 
 Что писать?
 - Где учился?
@@ -180,7 +155,10 @@ EDIT_ABOUT_TEXT = '''Напиши о себе. Собеседник поймёт
 
 Автор проекта Наташа https://github.com/natasha. Работаю в своей Лабе https://lab.alexkuk.ru, адаптирую Наташу под задачи клиентов.
 
-Живу в Москве в Крылатском. У нас тут мекка велоспорта. Умею сидеть на колесе и сдавать смену. Вожу экскурсии. Могу рассказать про путь от академизма к супрематизму."'''
+Живу в Москве в Крылатском. У нас тут мекка велоспорта. Умею сидеть на колесе и сдавать смену. Вожу экскурсии. Могу рассказать про путь от академизма к супрематизму."
+
+/{CANCEL_COMMAND} - отменить
+/{EMPTY_COMMAND} - оставить пустым'''
 
 TOP_CITIES = [
     'Москва',
@@ -198,7 +176,7 @@ TOP_CITIES = [
 
 
 def participate_text(schedule):
-    return f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.'
+    return f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
 
 
 PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
@@ -208,39 +186,49 @@ def no_contact_text(schedule):
     return f'Бот не назначил тебе собеседника. Бот составляет пары по понедельникам, очередной раунд {day_month(schedule.next_week_monday())}.'
 
 
-def show_contact_text(user):
+def show_contact_text(user, contact):
     return f'''Контакт собеседника в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
 
 {intro_text(user.intro)}
 
-{command_description(CONFIRM_CONTACT_COMMAND)}
-{command_description(FAIL_CONTACT_COMMAND)}
-{command_description(CONTACT_FEEDBACK_COMMAND)}'''
+/{CONFIRM_CONTACT_COMMAND} - договорились о встрече
+/{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
+/{CONTACT_FEEDBACK_COMMAND} - оставить отзыв'''
 
 
-CONFIRM_CONTACT_TEXT = f'Рад, что получилось договориться! Оставь фидбек после встречи /{CONTACT_FEEDBACK_COMMAND}.'
+CONFIRM_CONTACT_TEXT = f'''Пометил, что вы договорились о встрече. Бот не потревожит рассылкой с напоминанием списаться.
+
+/{CONTACT_FEEDBACK_COMMAND} - оставить фидбек о встрече'''
 
 
 def fail_contact_text(schedule):
-    return f'Жаль, что встреча не состоится. В понедельник {day_month(schedule.next_week_monday())} бот подберёт нового собеседника, пришлёт анкету и контакт.'
+    return f'''Жалко, что встреча не состоялась.
+
+Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
+
+/{PARTICIPATE_COMMAND} - участвовать
+/{PAUSE_WEEK_COMMAND} - пауза на неделю
+/{PAUSE_MONTH_COMMAND} - пауза на месяц'''
 
 
-def contact_feedback_text(user, contact):
-    return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
-Фидбек: {contact.feedback or EMPTY_SYMBOL}
+def contact_feedback_text(user):
+    return f'''Напиши фидбек своими словами или оставь оценку от 1 до 5, где 1 - очень плохо, 5 - очень хорошо. Собеседник на этой неделе - <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
 
-Напиши фидбек своими словами или оставь оценку от 1 до 5, где 1 - очень плохо, 5 - очень хорошо.
-
-/{EMPTY_COMMAND} - оставить пустым
-/{CANCEL_COMMAND} - отменить'''
+/{CANCEL_COMMAND} - отменить
+/{EMPTY_COMMAND} - оставить пустым'''
 
 
 CONTACT_FEEDBACK_OPTIONS = '12345'
 
 
-def contact_feedback_state_text(user, contact):
-    return f'''Собеседник: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
-Фидбек: {contact.feedback or EMPTY_SYMBOL}'''
+def contact_feedback_state_text(user, contact, schedule):
+    return f'''Записал фидбек - "{contact.feedback or EMPTY_SYMBOL}", собеседник - <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
+
+Участвуешь во встречах на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
+
+/{PARTICIPATE_COMMAND} - участвовать
+/{PAUSE_WEEK_COMMAND} - пауза на неделю
+/{PAUSE_MONTH_COMMAND} - пауза на месяц'''
 
 
 #######
@@ -442,7 +430,7 @@ async def handle_show_contact(context, message):
         return
 
     partner_user = await context.db.get_user(contact.partner_user_id)
-    text = show_contact_text(partner_user)
+    text = show_contact_text(partner_user, contact)
     await message.answer(text=text)
 
 
@@ -482,7 +470,7 @@ async def handle_contact_feedback(context, message):
         markup.insert(option)
 
     partner_user = await context.db.get_user(contact.partner_user_id)
-    text = contact_feedback_text(partner_user, contact)
+    text = contact_feedback_text(partner_user)
     await message.answer(
         text=text,
         reply_markup=markup
@@ -499,16 +487,17 @@ async def handle_contact_feedback_state(context, message):
         return
 
     command = parse_command(message.text)
-    if command != CANCEL_COMMAND:
-        if command != EMPTY_COMMAND:
-            contact.feedback = message.text
-        else:
-            contact.feedback = None
+    if command == CANCEL_COMMAND:
+        return
 
-        await context.db.put_contact(contact)
+    if command != EMPTY_COMMAND:
+        contact.feedback = message.text
+    else:
+        contact.feedback = None
+    await context.db.put_contact(contact)
 
     partner_user = await context.db.get_user(contact.partner_user_id)
-    text = contact_feedback_state_text(partner_user, contact)
+    text = contact_feedback_state_text(partner_user, contact, context.schedule)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
@@ -525,7 +514,8 @@ async def handle_contact_feedback_state(context, message):
 
 
 async def handle_other(context, message):
-    await message.answer(text=OTHER_TEXT)
+    text = start_text(context.schedule)
+    await message.answer(text=text)
 
 
 #######

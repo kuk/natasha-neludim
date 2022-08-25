@@ -167,7 +167,7 @@ async def test_confirm_contact(context):
     await process_update(context, START_JSON.replace('/start', '/confirm_contact'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'получилось договориться'],
+        ['sendMessage', 'договорились'],
     ])
     assert context.db.contacts[0].state == CONFIRM_STATE
 
@@ -178,7 +178,7 @@ async def test_fail_contact(context):
     await process_update(context, START_JSON.replace('/start', '/fail_contact'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'встреча не состоится'],
+        ['sendMessage', 'Жалко'],
     ])
     assert context.db.contacts[0].state == FAIL_STATE
 
@@ -191,7 +191,7 @@ async def test_contact_feedback(context):
 
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'очень плохо'],
-        ['sendMessage', 'Фидбек'],
+        ['sendMessage', 'Записал фидбек'],
     ])
     assert context.db.contacts[0].feedback == '3'
 
@@ -204,5 +204,5 @@ async def test_contact_feedback(context):
 async def test_other(context):
     await process_update(context, START_JSON.replace('/start', 'abc'))
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Бот ответчает только на команды']
+        ['sendMessage', 'Бот организует']
     ])
