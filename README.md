@@ -243,7 +243,7 @@ export $(cat .env | xargs)
 make test-lint test-key KEY=test
 ```
 
-Собрать образ, загрузить его в реестр, задеплоить
+Собрать образ, загрузить его в реестр, задеплоить.
 
 ```bash
 make image push
