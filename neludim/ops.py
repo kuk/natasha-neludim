@@ -178,17 +178,23 @@ async def ask_contact_feedback(context):
     users = await context.db.read_users()
 
     contacts = await context.db.read_contacts()
-    contacts = find_contacts(
+    contacts = list(find_contacts(
         contacts,
         week_index=context.schedule.current_week_index()
-    )
+    ))
+
+    skip_user_ids = set()
+    for contact in contacts:
+        if contact.feedback:
+            skip_user_ids.add(contact.user_id)
+
+        if contact.state == FAIL_STATE:
+            skip_user_ids.add(contact.user_id)
+            skip_user_ids.add(contact.partner_user_id)
 
     tasks = []
     for contact in contacts:
-        if (
-                contact.feedback
-                or contact.state == FAIL_STATE
-        ):
+        if contact.user_id in skip_user_ids:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
