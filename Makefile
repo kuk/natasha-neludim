@@ -31,6 +31,7 @@ deploy-bot:
 		--environment AWS_KEY_ID=$(AWS_KEY_ID) \
 		--environment AWS_KEY=$(AWS_KEY) \
 		--environment DYNAMO_ENDPOINT=$(DYNAMO_ENDPOINT) \
+		--environment ADMIN_USER_ID=$(ADMIN_USER_ID) \
 		--service-account-id $(SERVICE_ACCOUNT_ID) \
 		--folder-name natasha-neludim
 
@@ -47,6 +48,7 @@ deploy-trigger:
 		--environment AWS_KEY_ID=$(AWS_KEY_ID) \
 		--environment AWS_KEY=$(AWS_KEY) \
 		--environment DYNAMO_ENDPOINT=$(DYNAMO_ENDPOINT) \
+		--environment ADMIN_USER_ID=$(ADMIN_USER_ID) \
 		--service-account-id $(SERVICE_ACCOUNT_ID) \
 		--folder-name natasha-neludim
 
