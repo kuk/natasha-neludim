@@ -16,6 +16,8 @@ AWS_KEY = getenv('AWS_KEY')
 
 DYNAMO_ENDPOINT = getenv('DYNAMO_ENDPOINT')
 
+ADMIN_USER_ID = int(getenv('ADMIN_USER_ID'))
+
 #####
 #  LOG
 #####
@@ -64,6 +66,9 @@ USERS_KEY = 'user_id'
 
 CONTACTS_TABLE = 'contacts'
 CONTACTS_KEY = 'key'
+
+MANUAL_MATCHES_TABLE = 'manual_matches'
+MANUAL_MATCHES_KEY = 'key'
 
 #####
 #  COMMAND

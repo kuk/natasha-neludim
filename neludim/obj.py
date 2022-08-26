@@ -55,3 +55,13 @@ class Contact:
             self.user_id,
             self.partner_user_id
         )
+
+
+@dataclass
+class Match:
+    user_id: int
+    partner_user_id: int
+
+    @property
+    def key(self):
+        return (self.user_id, self.partner_user_id)

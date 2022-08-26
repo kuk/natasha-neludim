@@ -16,13 +16,15 @@ from .const import (
 from .text import (
     day_month,
     user_url,
-    user_mention
+    user_mention,
+    intro_text,
 )
 from .schedule import week_index
-from .bot.broadcast import (
-    BroadcastTask,
-    broadcast
+from .obj import (
+    Match,
+    Contact,
 )
+from .match import gen_matches
 
 
 #######
@@ -52,6 +54,32 @@ ASK_EDIT_INTRO_TEXT = '''Заполни, пожалуйста, профиль: �
 # Упростит задачу собеседнику, быстрее поймёт чем ты занимаешься, не придётся ходить по ссылкам.
 
 
+def send_contact_text(user):
+    return f'''Бот подобрал тебе собеседника! Его контакт в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
+
+{intro_text(user.intro)}
+
+Пожалуйста, договоритесь про время и место встречи. Примеры, что написать:
+- Привет, бот Нелюдим дал твой контакт. Когда удобно встретиться/созвониться на этой неделе?
+- Хай, я от Нелюдима ) Ты в Сбере на Кутузовской? Можно там. Когда удобно?
+
+/{CONFIRM_CONTACT_COMMAND} - договорились
+/{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
+/{CONTACT_FEEDBACK_COMMAND} - оставить фидбек'''
+
+
+def no_contact_text(schedule):
+    return f'''Бот не смог подобрать тебе пару. Причины:
+- Нечетное число участников. Бот исключает одного случайного.
+- Мало участников на этой неделе, ты уже со всеми встречался.
+
+Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
+
+/{PARTICIPATE_COMMAND} - участвовать
+/{PAUSE_WEEK_COMMAND} - пауза на неделю
+/{PAUSE_MONTH_COMMAND} - пауза на месяц'''
+
+
 def ask_confirm_contact_text(user):
     return f'''Получилось договориться с <a href="{user_url(user.user_id)}">{user_mention(user)}</a> о встрече?
 
@@ -75,11 +103,25 @@ def ask_contact_feedback_text(user):
 ######
 
 
+def find_contacts(contacts, week_index=None):
+    for contact in contacts:
+        if week_index is not None and contact.week_index == week_index:
+            yield contact
+
+
+def find_user(users, user_id=None, username=None):
+    for user in users:
+        if (
+                user_id is not None and user.user_id == user_id
+                or username is not None and user.username == username
+        ):
+            return user
+
+
 async def ask_agree_participate(context):
     users = await context.db.read_users()
     next_week_index = context.schedule.current_week_index() + 1
 
-    tasks = []
     for user in users:
         if user.paused:
             if user.pause_period == WEEK:
@@ -97,34 +139,16 @@ async def ask_agree_participate(context):
             continue
 
         text = ask_agree_participate_text(context.schedule)
-        tasks.append(BroadcastTask(
+        await context.broadcast.send_message(
             chat_id=user.user_id,
             text=text
-        ))
-
-    await broadcast(context.bot, tasks)
-
-
-def find_contacts(contacts, week_index=None):
-    for contact in contacts:
-        if week_index is not None and contact.week_index == week_index:
-            yield contact
-
-
-def find_user(users, user_id=None, username=None):
-    for user in users:
-        if (
-                user_id is not None and user.user_id == user_id
-                or username is not None and user.username == username
-        ):
-            return user
+        )
 
 
 async def ask_edit_intro(context):
     users = await context.db.read_users()
     next_week_index = context.schedule.current_week_index() + 1
 
-    tasks = []
     for user in users:
         if (
                 user.agreed_participate
@@ -132,12 +156,70 @@ async def ask_edit_intro(context):
                 and not user.intro.links
                 and not user.intro.about
         ):
-            tasks.append(BroadcastTask(
+            await context.broadcast.send_message(
                 chat_id=user.user_id,
                 text=ASK_EDIT_INTRO_TEXT
-            ))
+            )
 
-    await broadcast(context.bot, tasks)
+
+async def send_contacts(context):
+    users = await context.db.read_users()
+    contacts = await context.db.read_contacts()
+    manual_matches = await context.db.read_manual_matches()
+    current_week_index = context.schedule.current_week_index()
+
+    participate_users = []
+    for user in users:
+        if (
+                user.agreed_participate
+                and week_index(user.agreed_participate) + 1 == current_week_index
+        ):
+            participate_users.append(user)
+
+    skip_matches = [
+        Match(_.user_id, _.partner_user_id)
+        for _ in contacts
+    ]
+
+    for match in gen_matches(participate_users, skip_matches, manual_matches):
+        user_id, partner_user_id = match.key
+
+        if not partner_user_id:
+            await context.broadcast.send_message(
+                chat_id=user_id,
+                text=no_contact_text(context.schedule)
+            )
+
+        contact = Contact(
+            week_index=current_week_index,
+            user_id=user_id,
+            partner_user_id=partner_user_id
+        )
+        await context.db.put_contact(contact)
+
+        contact = Contact(
+            week_index=current_week_index,
+            user_id=partner_user_id,
+            partner_user_id=user_id
+        )
+        await context.db.put_contact(contact)
+
+        user = find_user(users, user_id=user_id)
+        user.partner_user_id = partner_user_id
+        await context.db.put_user(user)
+
+        partner_user = find_user(users, user_id=partner_user_id)
+        partner_user.partner_user_id = user_id
+        await context.db.put_user(partner_user)
+
+        await context.broadcast.send_message(
+            chat_id=user.user_id,
+            text=send_contact_text(partner_user),
+        )
+        await context.broadcast.send_message(
+            chat_id=partner_user.user_id,
+            text=send_contact_text(user)
+        )
 
 
 async def ask_confirm_contact(context):
@@ -159,19 +241,16 @@ async def ask_confirm_contact(context):
             skip_user_ids.add(contact.user_id)
             skip_user_ids.add(contact.partner_user_id)
 
-    tasks = []
     for contact in contacts:
         if contact.user_id in skip_user_ids:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_confirm_contact_text(partner_user)
-        tasks.append(BroadcastTask(
+        await context.broadcast.send_message(
             chat_id=contact.user_id,
             text=text
-        ))
-
-    await broadcast(context.bot, tasks)
+        )
 
 
 async def ask_contact_feedback(context):
@@ -192,16 +271,13 @@ async def ask_contact_feedback(context):
             skip_user_ids.add(contact.user_id)
             skip_user_ids.add(contact.partner_user_id)
 
-    tasks = []
     for contact in contacts:
         if contact.user_id in skip_user_ids:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_contact_feedback_text(partner_user)
-        tasks.append(BroadcastTask(
+        await context.broadcast.send_message(
             chat_id=contact.user_id,
             text=text
-        ))
-
-    await broadcast(context.bot, tasks)
+        )

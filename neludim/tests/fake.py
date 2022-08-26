@@ -13,6 +13,7 @@ from neludim.bot.bot import (
     Dispatcher,
     setup_bot,
 )
+from neludim.bot.broadcast import Broadcast
 from neludim.schedule import (
     Schedule,
     START_DATE,
@@ -38,6 +39,7 @@ class FakeDB(DB):
         self.chat_states = {}
         self.users = []
         self.contacts = []
+        self.manual_matches = []
 
     async def set_chat_state(self, id, state):
         self.chat_states[id] = state
@@ -81,6 +83,19 @@ class FakeDB(DB):
             if _.key != key
         ]
 
+    async def read_manual_matches(self):
+        return self.manual_matches
+
+    async def put_manual_match(self, match):
+        await self.delete_manual_match(match.key)
+        self.manual_matches.append(match)
+
+    async def delete_manual_match(self, key):
+        self.manual_matches = [
+            _ for _ in self.manual_matches
+            if _.key != key
+        ]
+
 
 class FakeSchedule(Schedule):
     def now(self):
@@ -92,6 +107,7 @@ class FakeContext(Context):
         Context.__init__(self)
         self.bot = FakeBot()
         self.dispatcher = Dispatcher(self.bot)
+        self.broadcast = Broadcast(self.bot)
         self.db = FakeDB()
         self.schedule = FakeSchedule()
 

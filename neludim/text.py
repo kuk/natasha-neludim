@@ -46,3 +46,13 @@ def user_mention(user):
 
 def user_url(user_id):
     return f'tg://user?id={user_id}'
+
+
+EMPTY_SYMBOL = '∅'
+
+
+def intro_text(intro):
+    return f'''Имя: {intro.name or EMPTY_SYMBOL}
+Город: {intro.city or EMPTY_SYMBOL}
+Ссылки: {intro.links or EMPTY_SYMBOL}
+О себе: {intro.about or EMPTY_SYMBOL}'''

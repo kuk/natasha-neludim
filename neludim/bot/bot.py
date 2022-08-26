@@ -1,8 +1,7 @@
 
-from aiogram import (
-    Bot,
-    Dispatcher,
-)
+from aiogram import Bot
+from aiogram import Dispatcher  # noqa
+
 from aiogram.types import ParseMode
 
 from neludim.const import BOT_TOKEN
@@ -18,10 +17,6 @@ def init_bot():
         parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
     )
-
-
-def bot_dispatcher(bot):
-    return Dispatcher(bot)
 
 
 def setup_bot(context):

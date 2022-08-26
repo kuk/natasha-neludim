@@ -89,6 +89,15 @@ aws dynamodb create-table \
     AttributeName=key,KeyType=HASH \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
+
+aws dynamodb create-table \
+  --table-name manual_matches \
+  --attribute-definitions \
+    AttributeName=key,AttributeType=S \
+  --key-schema \
+    AttributeName=key,KeyType=HASH \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
 ```
 
 Удалить таблички.
@@ -103,6 +112,10 @@ aws dynamodb delete-table --table-name users \
   --profile natasha-neludim
 
 aws dynamodb delete-table --table-name contacts \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
+aws dynamodb delete-table --table-name manual_matches \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
 ```
@@ -130,6 +143,11 @@ aws dynamodb scan \
 
 aws dynamodb scan \
   --table-name contacts \
+  --endpoint $DYNAMO_ENDPOINT \
+  --profile natasha-neludim
+
+aws dynamodb scan \
+  --table-name manual_matches \
   --endpoint $DYNAMO_ENDPOINT \
   --profile natasha-neludim
 ```

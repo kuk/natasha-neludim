@@ -3,6 +3,7 @@ from .obj import (
     Chat,
     Contact,
     User,
+    Match,
 )
 from .const import (
     CHATS_TABLE,
@@ -13,6 +14,9 @@ from .const import (
 
     CONTACTS_TABLE,
     CONTACTS_KEY,
+
+    MANUAL_MATCHES_TABLE,
+    MANUAL_MATCHES_KEY,
 
     N, S,
 )
@@ -109,6 +113,24 @@ async def delete_contact(db, key):
     )
 
 
+async def read_manual_matches(db):
+    items = await dynamo_scan(db.client, MANUAL_MATCHES_TABLE)
+    return [dynamo_deserialize_item(_, Match) for _ in items]
+
+
+async def put_manual_match(db, match):
+    item = dynamo_serialize_item(match)
+    item[MANUAL_MATCHES_KEY] = {S: dynamo_key(match.key)}
+    await dynamo_put(db.client, MANUAL_MATCHES_TABLE, item)
+
+
+async def delete_manual_match(db, key):
+    await dynamo_delete(
+        db.client, MANUAL_MATCHES_TABLE,
+        MANUAL_MATCHES_KEY, S, dynamo_key(key)
+    )
+
+
 ######
 #  DB
 #######
@@ -140,3 +162,7 @@ DB.read_contacts = read_contacts
 DB.put_contact = put_contact
 DB.get_contact = get_contact
 DB.delete_contact = delete_contact
+
+DB.read_manual_matches = read_manual_matches
+DB.put_manual_match = put_manual_match
+DB.delete_manual_match = delete_manual_match
