@@ -43,18 +43,26 @@ class User:
 class Contact:
     week_index: int
     user_id: int
-    partner_user_id: int
+
+    # no partner for this week: odd participants
+    partner_user_id: int = None
 
     state: str = None
     feedback: str = None
 
     @property
     def key(self):
-        return (
-            self.week_index,
-            self.user_id,
-            self.partner_user_id
-        )
+        if self.partner_user_id:
+            return (
+                self.week_index,
+                self.user_id,
+                self.partner_user_id
+            )
+        else:
+            return (
+                self.week_index,
+                self.user_id
+            )
 
 
 @dataclass

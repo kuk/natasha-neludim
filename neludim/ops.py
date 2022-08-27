@@ -139,7 +139,7 @@ async def ask_agree_participate(context):
             continue
 
         text = ask_agree_participate_text(context.schedule)
-        await context.broadcast.send_message(
+        await context.broadcast.queue_message(
             chat_id=user.user_id,
             text=text
         )
@@ -156,13 +156,13 @@ async def ask_edit_intro(context):
                 and not user.intro.links
                 and not user.intro.about
         ):
-            await context.broadcast.send_message(
+            await context.broadcast.queue_message(
                 chat_id=user.user_id,
                 text=ASK_EDIT_INTRO_TEXT
             )
 
 
-async def send_contacts(context):
+async def create_contacts(context):
     users = await context.db.read_users()
     contacts = await context.db.read_contacts()
     manual_matches = await context.db.read_manual_matches()
@@ -184,13 +184,6 @@ async def send_contacts(context):
     for match in gen_matches(participate_users, skip_matches, manual_matches):
         user_id, partner_user_id = match.key
 
-        if not partner_user_id:
-            await context.broadcast.send_message(
-                chat_id=user_id,
-                text=no_contact_text(context.schedule)
-            )
-            continue
-
         contact = Contact(
             week_index=current_week_index,
             user_id=user_id,
@@ -198,29 +191,44 @@ async def send_contacts(context):
         )
         await context.db.put_contact(contact)
 
-        contact = Contact(
-            week_index=current_week_index,
-            user_id=partner_user_id,
-            partner_user_id=user_id
-        )
-        await context.db.put_contact(contact)
-
         user = find_user(users, user_id=user_id)
         user.partner_user_id = partner_user_id
         await context.db.put_user(user)
 
-        partner_user = find_user(users, user_id=partner_user_id)
-        partner_user.partner_user_id = user_id
-        await context.db.put_user(partner_user)
+        if partner_user_id:
+            contact = Contact(
+                week_index=current_week_index,
+                user_id=partner_user_id,
+                partner_user_id=user_id
+            )
+            await context.db.put_contact(contact)
 
-        await context.broadcast.send_message(
-            chat_id=user.user_id,
-            text=send_contact_text(partner_user),
-        )
-        await context.broadcast.send_message(
-            chat_id=partner_user.user_id,
-            text=send_contact_text(user)
-        )
+            partner_user = find_user(users, user_id=partner_user_id)
+            partner_user.partner_user_id = user_id
+            await context.db.put_user(partner_user)
+
+
+async def send_contacts(context):
+    users = await context.db.read_users()
+    contacts = await context.db.read_contacts()
+    contacts = list(find_contacts(
+        contacts,
+        week_index=context.schedule.current_week_index()
+    ))
+
+    for contact in contacts:
+        if not contact.partner_user_id:
+            await context.broadcast.queue_message(
+                chat_id=contact.user_id,
+                text=no_contact_text(context.schedule)
+            )
+
+        else:
+            partner_user = find_user(users, user_id=contact.partner_user_id)
+            await context.broadcast.queue_message(
+                chat_id=contact.user_id,
+                text=send_contact_text(partner_user),
+            )
 
 
 async def ask_confirm_contact(context):
@@ -248,7 +256,7 @@ async def ask_confirm_contact(context):
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_confirm_contact_text(partner_user)
-        await context.broadcast.send_message(
+        await context.broadcast.queue_message(
             chat_id=contact.user_id,
             text=text
         )
@@ -278,7 +286,7 @@ async def ask_contact_feedback(context):
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_contact_feedback_text(partner_user)
-        await context.broadcast.send_message(
+        await context.broadcast.queue_message(
             chat_id=contact.user_id,
             text=text
         )

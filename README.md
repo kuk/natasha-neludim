@@ -220,19 +220,16 @@ curl --url https://api.telegram.org/bot${BOT_TOKEN}/setWebhook\?url=${WEBHOOK_UR
 
 ```bash
 yc serverless trigger create timer default \
-  --cron-expression "* * * * ? *" \
+  --cron-expression "0 0,9,17 ? * MON,WED,SAT,SUN *" \
   --invoke-container-name trigger \
   --invoke-container-service-account-name natasha-neludim \
   --folder-name natasha-neludim
 ```
 
-Остановить, запустить триггер.
+Удалить триггер.
 
 ```bash
-yc serverless trigger pause default \
-  --folder-name natasha-neludim
-
-yc serverless trigger resume default \
+yc serverless trigger delete default \
   --folder-name natasha-neludim
 ```
 

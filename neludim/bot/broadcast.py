@@ -1,5 +1,6 @@
 
 import asyncio
+from dataclasses import dataclass
 
 from aiogram import exceptions
 
@@ -17,9 +18,24 @@ async def send_message(bot, chat_id, text):
         pass
 
 
+@dataclass
+class Message:
+    chat_id: int
+    text: str
+
+
 class Broadcast:
     def __init__(self, bot):
         self.bot = bot
+        self.queue = []
 
-    async def send_message(self, chat_id, text):
-        await send_message(self.bot, chat_id, text)
+    async def queue_message(self, chat_id, text):
+        message = Message(chat_id, text)
+        self.queue.append(message)
+
+    async def send(self):
+        for message in self.queue:
+            await send_message(self.bot, message.chat_id, message.text)
+
+            # safe 20 rps < limit 30 rps
+            await asyncio.sleep(0.05)

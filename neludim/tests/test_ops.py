@@ -12,12 +12,14 @@ from neludim.obj import (
     User,
     Intro,
     Contact,
+    Match,
 )
 from neludim.schedule import week_index_monday
     
 from neludim.ops import (
     ask_agree_participate,
     ask_edit_intro,
+    create_contacts,
     send_contacts,
     ask_confirm_contact,
     ask_contact_feedback,
@@ -36,6 +38,7 @@ async def test_ask_agree_participate(context):
         User(user_id=6, paused=week_index_monday(week_index - 4), pause_period=MONTH),
     ]
     await ask_agree_participate(context)
+    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '"chat_id": 0'],
         ['sendMessage', '"chat_id": 1'],
@@ -54,22 +57,43 @@ async def test_ask_edit_intro(context):
         User(user_id=4, intro=Intro()),
     ]
     await ask_edit_intro(context)
+    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '"chat_id": 1'],
     ])
 
 
-async def test_send_contacts(context):
+async def test_create_contacts(context):
     agreed_participate = week_index_monday(context.schedule.current_week_index() - 1)
     context.db.users = [
         User(user_id=1, agreed_participate=agreed_participate, intro=Intro()),
         User(user_id=2, agreed_participate=agreed_participate, intro=Intro()),
         User(user_id=3, agreed_participate=agreed_participate, intro=Intro()),
     ]
+    await create_contacts(context)
+    assert context.db.contacts == [
+        Contact(week_index=0, user_id=1, partner_user_id=3),
+        Contact(week_index=0, user_id=3, partner_user_id=1),
+        Contact(week_index=0, user_id=2, partner_user_id=None),
+    ]
+
+
+async def test_send_contacts(context):
+    context.db.users = [
+        User(user_id=1, intro=Intro()),
+        User(user_id=2, intro=Intro()),
+        User(user_id=3, intro=Intro()),
+    ]
+    context.db.contacts = [
+        Contact(week_index=0, user_id=1, partner_user_id=3),
+        Contact(week_index=0, user_id=3, partner_user_id=1),
+        Contact(week_index=0, user_id=2, partner_user_id=None),
+    ]
     await send_contacts(context)
+    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
-        ['sendMessage', '{"chat_id": 1, "text": "Бот подобра'],
-        ['sendMessage', '{"chat_id": 3, "text": "Бот подобра'],
+        ['sendMessage', '{"chat_id": 1, "text": "Бот подобрал'],
+        ['sendMessage', '{"chat_id": 3, "text": "Бот подобрал'],
         ['sendMessage', '{"chat_id": 2, "text": "Бот не смог подобрать'],
     ])
 
@@ -87,8 +111,8 @@ async def test_ask_confirm_contact(context):
         Contact(week_index=0, user_id=3, partner_user_id=4, state=CONFIRM_STATE),
         Contact(week_index=0, user_id=4, partner_user_id=3),
     ]
-    
     await ask_confirm_contact(context)
+    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@b'],
         ['sendMessage', '@a'],
@@ -107,8 +131,8 @@ async def test_ask_contact_feedback(context):
         Contact(week_index=0, user_id=2, partner_user_id=1, feedback='1'),
         Contact(week_index=0, user_id=3, partner_user_id=4, state=CONFIRM_STATE),
     ]
-    
     await ask_contact_feedback(context)
+    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@d'],
     ])
