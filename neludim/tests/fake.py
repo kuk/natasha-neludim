@@ -6,8 +6,6 @@ from json import (
 
 from aiogram.types import Update
 
-import pytest
-
 from neludim.bot.bot import (
     Bot,
     Dispatcher,
@@ -112,15 +110,11 @@ class FakeContext(Context):
         self.schedule = FakeSchedule()
 
 
-@pytest.fixture(scope='function')
-def context():
-    context = FakeContext()
+def fake_setup(context):
     setup_bot(context)
-
+    
     Bot.set_current(context.bot)
     Dispatcher.set_current(context.dispatcher)
-
-    return context
 
 
 async def process_update(context, json):

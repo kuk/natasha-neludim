@@ -24,13 +24,6 @@ def day_month(datetime):
     return f'{datetime.day} {MONTHS[datetime.month]}'
 
 
-def day_day_month(start, stop):
-    if start.month == stop.month:
-        return f'{start.day}-{stop.day} {MONTHS[start.month]}'
-    else:
-        return f'{day_month(start)} - {day_month(stop)}'
-
-
 ########
 #  USER
 ######

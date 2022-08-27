@@ -1,28 +1,10 @@
 
-import asyncio
-
-import pytest
-
-from neludim.db import DB
 from neludim.obj import (
     User,
     Intro,
     Contact,
     Match
 )
-
-
-@pytest.fixture(scope='session')
-def event_loop():
-    return asyncio.get_event_loop()
-
-
-@pytest.fixture(scope='session')
-async def db():
-    db = DB()
-    await db.connect()
-    yield db
-    await db.close()
 
 
 async def test_chats(db):
@@ -40,6 +22,7 @@ async def test_users(db):
 
     await db.put_user(user)
     assert user == await db.get_user(user_id=user.user_id)
+    assert user in await db.read_users()
 
     await db.delete_user(user_id=user.user_id)
     assert await db.get_user(user_id=user.user_id) is None

@@ -189,6 +189,7 @@ async def send_contacts(context):
                 chat_id=user_id,
                 text=no_contact_text(context.schedule)
             )
+            continue
 
         contact = Contact(
             week_index=current_week_index,

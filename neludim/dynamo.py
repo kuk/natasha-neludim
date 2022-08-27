@@ -10,7 +10,6 @@ from .const import (
     AWS_KEY_ID,
     AWS_KEY,
 
-    BOOL,
     N, S, M
 )
 from .obj import obj_annots
@@ -84,9 +83,7 @@ async def dynamo_delete(client, table, key_name, key_type, key_value):
 
 
 def dynamo_type(annot):
-    if annot == bool:
-        return BOOL
-    elif annot == int:
+    if annot == int:
         return N
     elif annot in (str, Datetime):
         return S
@@ -95,9 +92,7 @@ def dynamo_type(annot):
 
 
 def dynamo_deserialize_value(value, annot):
-    if annot == bool:
-        return value
-    elif annot == int:
+    if annot == int:
         return int(value)
     elif annot == str:
         return value
@@ -108,9 +103,7 @@ def dynamo_deserialize_value(value, annot):
 
 
 def dynamo_serialize_value(value, annot):
-    if annot == bool:
-        return value
-    elif annot == int:
+    if annot == int:
         return str(value)
     elif annot == str:
         return value

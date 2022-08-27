@@ -12,7 +12,6 @@ from neludim.const import (
 )
 
 from neludim.tests.fake import (
-    context,
     process_update,
     match_trace,
 )

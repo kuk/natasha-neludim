@@ -1,8 +1,5 @@
 
-from neludim.tests.fake import (
-    context,
-    match_trace
-)
+from neludim.tests.fake import match_trace
 
 from neludim.const import (
     CONFIRM_STATE,
@@ -66,12 +63,14 @@ async def test_send_contacts(context):
     agreed_participate = week_index_monday(context.schedule.current_week_index() - 1)
     context.db.users = [
         User(user_id=1, agreed_participate=agreed_participate, intro=Intro()),
-        User(user_id=2, agreed_participate=agreed_participate, intro=Intro(links='links')),
+        User(user_id=2, agreed_participate=agreed_participate, intro=Intro()),
+        User(user_id=3, agreed_participate=agreed_participate, intro=Intro()),
     ]
     await send_contacts(context)
     assert match_trace(context.bot.trace, [
-        ['sendMessage', '{"chat_id": 1'],
-        ['sendMessage', '{"chat_id": 2'],
+        ['sendMessage', '{"chat_id": 1, "text": "Бот подобра'],
+        ['sendMessage', '{"chat_id": 3, "text": "Бот подобра'],
+        ['sendMessage', '{"chat_id": 2, "text": "Бот не смог подобрать'],
     ])
 
 

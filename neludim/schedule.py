@@ -17,10 +17,6 @@ def week_index_monday(index):
     return START_DATE + Timedelta(days=7 * index)
 
 
-def monday_sunday(monday):
-    return monday + Timedelta(days=6)
-
-
 class Schedule:
     now = Datetime.utcnow
 
