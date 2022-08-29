@@ -31,7 +31,11 @@ async def test_start(context):
         ['setMyCommands', '{"commands"'],
         ['sendMessage', '{"chat_id": 113947584, "text": "Бот организует']
     ])
-    assert context.db.users == [User(user_id=113947584, username='alexkuk', intro=Intro(name='Alexander Kukushkin'))]
+
+    user = context.db.users[0]
+    assert user.username == 'alexkuk'
+    assert user.created
+    assert user.intro.name == 'Alexander Kukushkin'
 
 
 #######

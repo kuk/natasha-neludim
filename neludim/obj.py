@@ -29,6 +29,7 @@ class Intro:
 class User:
     user_id: int
     username: str = None
+    created: Datetime = None
 
     agreed_participate: Datetime = None
     paused: Datetime = None

@@ -242,6 +242,7 @@ async def handle_start(context, message):
         user = User(
             user_id=message.from_user.id,
             username=message.from_user.username,
+            created=context.schedule.now(),
             intro=Intro(
                 name=message.from_user.full_name,
             )
