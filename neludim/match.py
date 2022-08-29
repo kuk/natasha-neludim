@@ -10,6 +10,12 @@ def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
     user_ids = {_.user_id for _ in users}
     skip_match_keys = {_.key for _ in skip_matches}
 
+    manual_matches = sorted(
+        manual_matches,
+        key=lambda _: (_.weight or 0, random.random()),
+        reverse=True
+    )
+
     matched_user_ids = set()
     for match in manual_matches:
         user_id, partner_user_id = match.key

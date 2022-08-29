@@ -70,6 +70,7 @@ class Contact:
 class Match:
     user_id: int
     partner_user_id: int
+    weight: int = None
 
     @property
     def key(self):

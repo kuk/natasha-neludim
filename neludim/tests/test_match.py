@@ -29,12 +29,12 @@ def test_manual():
     manual_matches = [
         Match(0, 2),
         Match(1, 2),
-        Match(1, 4)
+        Match(1, 4, weight=1)
     ]
     matches = list(gen_matches(users, manual_matches=manual_matches))
     assert matches == [
-        Match(user_id=0, partner_user_id=2),
         Match(user_id=1, partner_user_id=4),
+        Match(user_id=0, partner_user_id=2),
         Match(user_id=3, partner_user_id=None),
     ]
 
