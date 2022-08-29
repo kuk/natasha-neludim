@@ -211,10 +211,10 @@ async def create_contacts(context):
 async def send_contacts(context):
     users = await context.db.read_users()
     contacts = await context.db.read_contacts()
-    contacts = list(find_contacts(
+    contacts = find_contacts(
         contacts,
         week_index=context.schedule.current_week_index()
-    ))
+    )
 
     for contact in contacts:
         if not contact.partner_user_id:
@@ -233,7 +233,6 @@ async def send_contacts(context):
 
 async def ask_confirm_contact(context):
     users = await context.db.read_users()
-
     contacts = await context.db.read_contacts()
     contacts = list(find_contacts(
         contacts,
