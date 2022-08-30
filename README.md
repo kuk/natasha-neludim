@@ -203,10 +203,25 @@ yc serverless container add-access-binding trigger \
   --folder-name natasha-neludim
 ```
 
-Логи.
+Логи из stderr/stdout. Пропустить `system` типа `REPORT RequestID: 3f14b872-6371-4637-8b83-2927ba464036 Duration: 166.848 ms Billed Duration: 200 ms Memory Size: 256 MB Max Memory Used: 11 MB Queuing Duration: 0.058 ms`.
 
 ```bash
-yc log read default --follow --folder-name natasha-neludim
+yc log read default \
+  --filter 'json_payload.source = "user"' \
+  --follow \
+  --folder-name natasha-neludim
+```
+
+Все доступные логи типа `{"user_id": 979875237, "text": "/participate"}`.
+
+```bash
+yc log read default \
+  --filter 'message: user_id' \
+  --limit 1000 \
+  --since 2020-01-01T00:00:00Z \
+  --until 2030-01-01T00:00:00Z \
+  --format text \
+  --folder-name natasha-neludim
 ```
 
 Прицепить вебхук.
