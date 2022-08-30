@@ -139,7 +139,7 @@ async def ask_agree_participate(context):
             continue
 
         text = ask_agree_participate_text(context.schedule)
-        await context.broadcast.queue_message(
+        context.broadcast.add_message(
             chat_id=user.user_id,
             text=text
         )
@@ -156,7 +156,7 @@ async def ask_edit_intro(context):
                 and not user.intro.links
                 and not user.intro.about
         ):
-            await context.broadcast.queue_message(
+            context.broadcast.add_message(
                 chat_id=user.user_id,
                 text=ASK_EDIT_INTRO_TEXT
             )
@@ -218,14 +218,14 @@ async def send_contacts(context):
 
     for contact in contacts:
         if not contact.partner_user_id:
-            await context.broadcast.queue_message(
+            context.broadcast.add_message(
                 chat_id=contact.user_id,
                 text=no_contact_text(context.schedule)
             )
 
         else:
             partner_user = find_user(users, user_id=contact.partner_user_id)
-            await context.broadcast.queue_message(
+            context.broadcast.add_message(
                 chat_id=contact.user_id,
                 text=send_contact_text(partner_user),
             )
@@ -255,7 +255,7 @@ async def ask_confirm_contact(context):
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_confirm_contact_text(partner_user)
-        await context.broadcast.queue_message(
+        context.broadcast.add_message(
             chat_id=contact.user_id,
             text=text
         )
@@ -285,7 +285,7 @@ async def ask_contact_feedback(context):
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_contact_feedback_text(partner_user)
-        await context.broadcast.queue_message(
+        context.broadcast.add_message(
             chat_id=contact.user_id,
             text=text
         )
