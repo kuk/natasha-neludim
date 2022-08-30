@@ -40,18 +40,7 @@ async def dynamo_client():
 #####
 
 
-async def dynamo_scan(client, table):
-    response = await client.scan(
-        TableName=table
-    )
-    return response['Items']
-
-
-async def dynamo_put(client, table, item):
-    await client.put_item(
-        TableName=table,
-        Item=item
-    )
+# https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html
 
 
 async def dynamo_get(client, table, key_name, key_type, key_value):
@@ -66,6 +55,13 @@ async def dynamo_get(client, table, key_name, key_type, key_value):
     return response.get('Item')
 
 
+async def dynamo_put(client, table, item):
+    await client.put_item(
+        TableName=table,
+        Item=item
+    )
+
+
 async def dynamo_delete(client, table, key_name, key_type, key_value):
     await client.delete_item(
         TableName=table,
@@ -75,6 +71,64 @@ async def dynamo_delete(client, table, key_name, key_type, key_value):
             }
         }
     )
+
+
+async def dynamo_scan(client, table):
+    pager = client.get_paginator('scan')
+    responses = pager.paginate(
+        TableName=table
+    )
+    items = []
+    async for response in responses:
+        items.extend(response['Items'])
+    return items
+
+
+def iter_batches(items, max_size=25):
+    batch = []
+    for item in items:
+        batch.append(item)
+        if len(batch) >= max_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
+async def dynamo_batch_put(client, table, items):
+    for batch in iter_batches(items):
+        await client.batch_write_item(
+            RequestItems={
+                table: [
+                    {
+                        'PutRequest': {
+                            'Item': _
+                        }
+                    }
+                    for _ in batch
+                ]
+            }
+        )
+
+
+async def dynamo_batch_delete(client, table, key_name, key_type, key_values):
+    for batch in iter_batches(key_values):
+        await client.batch_write_item(
+            RequestItems={
+                table: [
+                    {
+                        'DeleteRequest': {
+                            'Key': {
+                                key_name: {
+                                    key_type: str(_)
+                                }
+                            }
+                        }
+                    }
+                    for _ in batch
+                ]
+            }
+        )
 
 
 ######
@@ -137,16 +191,11 @@ def dynamo_serialize_item(obj):
     return item
 
 
-#####
-#  KEY
-######
-
-
 # On DynamoDB partition key
 # https://aws.amazon.com/ru/blogs/database/choosing-the-right-dynamodb-partition-key/
 
 
-def dynamo_key(parts):
+def dynamo_serialize_key(parts):
     return '#'.join(
         str(_) for _ in parts
     )
