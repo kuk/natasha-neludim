@@ -194,7 +194,7 @@ async def test_contact_feedback(context):
 
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'очень плохо'],
-        ['sendMessage', 'Записал фидбек'],
+        ['sendMessage', 'Фидбек'],
     ])
     assert context.db.contacts[0].feedback == '3'
 

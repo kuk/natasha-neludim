@@ -215,7 +215,7 @@ CONTACT_FEEDBACK_OPTIONS = '12345'
 
 
 def contact_feedback_state_text(user, contact, schedule):
-    return f'''Записал фидбек - "{contact.feedback or EMPTY_SYMBOL}", собеседник - <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
+    return f'''Фидбек - "{contact.feedback or EMPTY_SYMBOL}", собеседник - <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
 
 Участвуешь во встречах на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
@@ -481,17 +481,16 @@ async def handle_contact_feedback_state(context, message):
         return
 
     command = parse_command(message.text)
-    if command == CANCEL_COMMAND:
-        return
-
-    if command != EMPTY_COMMAND:
-        contact.feedback = message.text
-    else:
-        contact.feedback = None
-    await context.db.put_contact(contact)
+    if command != CANCEL_COMMAND:
+        if command != EMPTY_COMMAND:
+            contact.feedback = message.text
+        else:
+            contact.feedback = None
+        await context.db.put_contact(contact)
 
     partner_user = await context.db.get_user(contact.partner_user_id)
     text = contact_feedback_state_text(partner_user, contact, context.schedule)
+
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
