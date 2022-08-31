@@ -43,7 +43,7 @@ deploy-trigger:
 		--cores 1 \
 		--memory 256MB \
 		--concurrency 16 \
-		--execution-timeout 30s \
+		--execution-timeout 60s \
 		--environment BOT_TOKEN=$(BOT_TOKEN) \
 		--environment AWS_KEY_ID=$(AWS_KEY_ID) \
 		--environment AWS_KEY=$(AWS_KEY) \
