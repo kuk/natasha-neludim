@@ -97,6 +97,7 @@ MANUAL_MATCHES_KEY = 'key'
 #######
 
 START_COMMAND = 'start'
+HELP_COMMAND = 'help'
 
 EDIT_INTRO_COMMAND = 'edit_intro'
 EDIT_NAME_COMMAND = 'edit_name'

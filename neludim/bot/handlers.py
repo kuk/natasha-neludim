@@ -9,6 +9,7 @@ from aiogram.types import (
 
 from neludim.const import (
     START_COMMAND,
+    HELP_COMMAND,
     EDIT_INTRO_COMMAND,
     EDIT_NAME_COMMAND,
     EDIT_CITY_COMMAND,
@@ -62,6 +63,7 @@ from neludim.obj import (
 
 COMMAND_DESCRIPTIONS = {
     START_COMMAND: 'с чего начать',
+    HELP_COMMAND: 'справка',
 
     EDIT_INTRO_COMMAND: 'поменять анкету',
     EDIT_NAME_COMMAND: 'поменять имя',
@@ -89,16 +91,61 @@ COMMAND_DESCRIPTIONS = {
 
 
 def start_text(schedule):
-    return f'''Бот организует random coffee для сообщества @natural_language_processing.
+    return f'''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
 
 С чего начать?
-1. Заполни короткую анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
-2. Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
-3. Заходи в закрытый чат для первых участников https://t.me/+-A_Q6y-dODY3OTli. Там разработчик бота @alexkuk принимает баг репорты, рассказывает о новых фичах.
+- Заполни короткую анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+- Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
 
 /{EDIT_INTRO_COMMAND} - заполнить анкету
 /{PARTICIPATE_COMMAND} - участвовать во встречах
-/{SHOW_CONTACT_COMMAND} - контакт и анкета собеседника'''
+/{HELP_COMMAND} - как работает бот, как договориться о встрече, список команд'''
+
+
+######
+#   HELP
+######
+
+
+HELP_TEXT = f'''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
+
+<b>Как это работает?</>
+- Участник чата @natural_language_processing запускает бота, заполняет анкету. Админ чата @alexkuk читает анкеты, объединяет людей в пары.
+- Раз в неделю бот присылает каждому участнику контакт собеседника и его анкету. Люди договариваются о времени, созваниваются или встречаются вживую.
+- В конце недели бот спрашивает "Как прошла встреча? Будешь участвовать на следующей неделе?".
+
+<b>Расписание</>
+- Понедельник - бот присылает контакт и анкету собеседника
+- Среда - напоминает договориться о встрече
+- Суббота - спрашивает "участвуешь на следующей неделе?"
+- Воскресенье - спрашивает "как прошла встреча"
+
+<b>Как договориться о встрече</b>
+Собеседник знает, что у вас назначена встреча, это не холодный контакт. Нужно договориться про время и место. Если живете в одном городе, лучше встретиться вживую. Созваниваться удобно по Зуму или в Телеграме.
+
+Примеры первых сообщений:
+- Привет, бот Нелюдим дал твой контакт. Когда удобно встретиться/созвониться на этой неделе?
+- Хай, я от Нелюдима ) Ты в Сбере на Кутузовской? Можно там. Когда удобно?
+
+<b>Команды</b>
+/{START_COMMAND} - с чего начать
+/{HELP_COMMAND} - справка
+
+/{EDIT_INTRO_COMMAND} - заполнить анкету
+/{EDIT_NAME_COMMAND} - поменять имя
+/{EDIT_CITY_COMMAND} - поменять город
+/{EDIT_LINKS_COMMAND} - поменять ссылки
+/{EDIT_ABOUT_COMMAND} - поменять "о себе"
+
+/{PARTICIPATE_COMMAND} - участвовать во встречах
+/{PAUSE_WEEK_COMMAND} - пауза на неделю
+/{PAUSE_MONTH_COMMAND} - пауза на месяц
+
+/{SHOW_CONTACT_COMMAND} - контакт, анкета собеседника
+/{CONFIRM_CONTACT_COMMAND} - договорились о встрече
+/{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
+/{CONTACT_FEEDBACK_COMMAND} - как прошла встреча
+'''
 
 
 ######
@@ -502,13 +549,16 @@ async def handle_contact_feedback_state(context, message):
 
 
 ######
-#  OTHER
+#  HELP/OTHER
 ########
 
 
+async def handle_help(context, message):
+    await message.answer(text=HELP_TEXT)
+
+
 async def handle_other(context, message):
-    text = start_text(context.schedule)
-    await message.answer(text=text)
+    await message.answer(text=HELP_TEXT)
 
 
 #######
@@ -590,6 +640,10 @@ def setup_handlers(context):
         chat_states=CONTACT_FEEDBACK_STATE,
     )
 
+    context.dispatcher.register_message_handler(
+        partial(handle_help, context),
+        commands=HELP_COMMAND,
+    )
     context.dispatcher.register_message_handler(
         partial(handle_other, context)
     )

@@ -29,7 +29,7 @@ async def test_start(context):
     await process_update(context, START_JSON)
     assert match_trace(context.bot.trace, [
         ['setMyCommands', '{"commands"'],
-        ['sendMessage', '{"chat_id": 113947584, "text": "Бот организует']
+        ['sendMessage', 'С чего начать']
     ])
 
     user = context.db.users[0]
@@ -200,12 +200,19 @@ async def test_contact_feedback(context):
 
 
 #######
-#   OTHER/STUB
+#   HELP/OTHER
 #######
+
+
+async def test_help(context):
+    await process_update(context, START_JSON.replace('/start', '/help'))
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Как это']
+    ])
 
 
 async def test_other(context):
     await process_update(context, START_JSON.replace('/start', 'abc'))
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Бот организует']
+        ['sendMessage', 'Как это']
     ])
