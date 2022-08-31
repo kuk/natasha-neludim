@@ -4,25 +4,31 @@ from functools import partial
 
 from aiohttp import web
 
-from neludim.const import ADMIN_USER_ID
+from .log import (
+    log,
+    json_msg,
+)
+from .const import (
+    MONDAY,
+    WEDNESDAY,
+    SATURDAY,
+    SUNDAY,
+
+    WEEKDAYS,
+)
+from .ops import (
+    create_contacts,
+    send_contacts,
+    ask_confirm_contact,
+    ask_agree_participate,
+    ask_edit_intro,
+    ask_contact_feedback,
+)
 
 
 ######
 #  PARSE
 #####
-
-
-# {
-#     "messages": [
-# 	 {
-# 	     "event_metadata": {
-# 		 "event_type": "yandex.cloud.events.serverless.triggers.TimerMessage",
-# 		 "created_at": "2022-08-23T10:31:10.869181208Z",
-# 		 "folder_id": "b1gvn9housafmd323832"
-# 	     },
-# 	     "trigger_id": "a1s8tlitsoh648k1sun5"
-# 	 }
-#     }
 
 
 def parse_datetime(value):
@@ -43,37 +49,17 @@ def parse_trigger(data):
 #######
 
 
-MONDAY = 'monday'
-TUESDAY = 'tuesday'
-WEDNESDAY = 'wednesday'
-THURSDAY = 'thursday'
-FRIDAY = 'friday'
-SATURDAY = 'saturday'
-SUNDAY = 'sunday'
-
-WEEKDAYS = [
-    MONDAY,
-    TUESDAY,
-    WEDNESDAY,
-    THURSDAY,
-    FRIDAY,
-    SATURDAY,
-    SUNDAY
-]
-
-
 # 0 0,9,17 ? * MON,WED,SAT,SUN *
 # msk+3, 50% users from msk, 9->12, 17->20
 
 
 SCHEDULE = {
-    (MONDAY, 0): 'create_contacts',
-    (MONDAY, 9): 'send_contacts',
-
-    (WEDNESDAY, 9): 'ask_confirm_contact',
-    (SATURDAY, 9): 'ask_agree_participate',
-    (SATURDAY, 17): 'ask_edit_intro',
-    (SUNDAY, 17): 'ask_contact_feedback',
+    (MONDAY, 0): create_contacts,
+    (MONDAY, 9): send_contacts,
+    (WEDNESDAY, 9): ask_confirm_contact,
+    (SATURDAY, 9): ask_agree_participate,
+    (SATURDAY, 17): ask_edit_intro,
+    (SUNDAY, 17): ask_contact_feedback,
 }
 
 
@@ -89,14 +75,11 @@ async def handle_trigger(context, request):
     weekday = WEEKDAYS[datetime.weekday()]
     hour = datetime.hour
     op = SCHEDULE.get((weekday, hour))
-    if not op:
-        return
+    if op:
+        log.info(json_msg(op=op.__name__))
+        await op(context)
 
-    text = f'TRIGGER {datetime} {op}'
-    await context.bot.send_message(
-        chat_id=ADMIN_USER_ID,
-        text=text
-    )
+    return web.Response()
 
 
 async def on_startup(context, _):
@@ -107,7 +90,7 @@ async def on_shutdown(context, _):
     await context.db.close()
 
 
-def start_webhook(context):
+def build_app(context):
     app = web.Application()
 
     app.add_routes([
@@ -117,7 +100,11 @@ def start_webhook(context):
     app.on_startup.append(partial(on_startup, context))
     app.on_shutdown.append(partial(on_shutdown, context))
 
+    return app
+
+
+def start_webhook(context):
     web.run_app(
-        app,
+        build_app(context),
         print=None
     )

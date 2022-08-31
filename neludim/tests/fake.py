@@ -11,7 +11,6 @@ from neludim.bot.bot import (
     Dispatcher,
     setup_bot,
 )
-from neludim.bot.broadcast import Broadcast
 from neludim.schedule import (
     Schedule,
     START_DATE,
@@ -39,11 +38,22 @@ class FakeDB(DB):
         self.contacts = []
         self.manual_matches = []
 
+    async def connect(self):
+        pass
+
+    async def close(self):
+        pass
+
     async def set_chat_state(self, id, state):
         self.chat_states[id] = state
 
     async def get_chat_state(self, id):
         return self.chat_states.get(id)
+
+    async def get_user(self, user_id):
+        for user in self.users:
+            if user.user_id == user_id:
+                return user
 
     async def read_users(self):
         return self.users
@@ -51,11 +61,6 @@ class FakeDB(DB):
     async def put_user(self, user):
         await self.delete_user(user.user_id)
         self.users.append(user)
-
-    async def get_user(self, user_id):
-        for user in self.users:
-            if user.user_id == user_id:
-                return user
 
     async def delete_user(self, user_id):
         self.users = [
@@ -71,17 +76,17 @@ class FakeDB(DB):
         for user in users:
             await self.delete_user(user)
 
+    async def get_contact(self, key):
+        for contact in self.contacts:
+            if contact.key == key:
+                return contact
+
     async def read_contacts(self):
         return self.contacts
 
     async def put_contact(self, contact):
         await self.delete_contact(contact.key)
         self.contacts.append(contact)
-
-    async def get_contact(self, key):
-        for contact in self.contacts:
-            if contact.key == key:
-                return contact
 
     async def delete_contact(self, key):
         self.contacts = [
@@ -121,7 +126,6 @@ class FakeContext(Context):
         Context.__init__(self)
         self.bot = FakeBot()
         self.dispatcher = Dispatcher(self.bot)
-        self.broadcast = Broadcast(self.bot)
         self.db = FakeDB()
         self.schedule = FakeSchedule()
 

@@ -38,7 +38,6 @@ async def test_ask_agree_participate(context):
         User(user_id=6, paused=week_index_monday(week_index - 4), pause_period=MONTH),
     ]
     await ask_agree_participate(context)
-    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '"chat_id": 0'],
         ['sendMessage', '"chat_id": 1'],
@@ -57,7 +56,6 @@ async def test_ask_edit_intro(context):
         User(user_id=4, intro=Intro()),
     ]
     await ask_edit_intro(context)
-    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '"chat_id": 1'],
     ])
@@ -90,7 +88,6 @@ async def test_send_contacts(context):
         Contact(week_index=0, user_id=2, partner_user_id=None),
     ]
     await send_contacts(context)
-    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '{"chat_id": 1, "text": "Бот подобрал'],
         ['sendMessage', '{"chat_id": 3, "text": "Бот подобрал'],
@@ -112,7 +109,6 @@ async def test_ask_confirm_contact(context):
         Contact(week_index=0, user_id=4, partner_user_id=3),
     ]
     await ask_confirm_contact(context)
-    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@b'],
         ['sendMessage', '@a'],
@@ -132,7 +128,6 @@ async def test_ask_contact_feedback(context):
         Contact(week_index=0, user_id=3, partner_user_id=4, state=CONFIRM_STATE),
     ]
     await ask_contact_feedback(context)
-    await context.broadcast.send()
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@d'],
     ])

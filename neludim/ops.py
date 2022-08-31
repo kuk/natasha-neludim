@@ -19,6 +19,10 @@ from .text import (
     user_mention,
     intro_text,
 )
+from .bot.broadcast import (
+    Message,
+    broadcast
+)
 from .schedule import week_index
 from .obj import (
     Match,
@@ -122,6 +126,7 @@ async def ask_agree_participate(context):
     users = await context.db.read_users()
     next_week_index = context.schedule.current_week_index() + 1
 
+    messages = []
     for user in users:
         if user.paused:
             if user.pause_period == WEEK:
@@ -139,16 +144,19 @@ async def ask_agree_participate(context):
             continue
 
         text = ask_agree_participate_text(context.schedule)
-        context.broadcast.add_message(
+        messages.append(Message(
             chat_id=user.user_id,
             text=text
-        )
+        ))
+
+    await broadcast(context.bot, messages)
 
 
 async def ask_edit_intro(context):
     users = await context.db.read_users()
     next_week_index = context.schedule.current_week_index() + 1
 
+    messages = []
     for user in users:
         if (
                 user.agreed_participate
@@ -156,10 +164,12 @@ async def ask_edit_intro(context):
                 and not user.intro.links
                 and not user.intro.about
         ):
-            context.broadcast.add_message(
+            messages.append(Message(
                 chat_id=user.user_id,
                 text=ASK_EDIT_INTRO_TEXT
-            )
+            ))
+
+    await broadcast(context.bot, messages)
 
 
 async def create_contacts(context):
@@ -225,19 +235,22 @@ async def send_contacts(context):
         week_index=context.schedule.current_week_index()
     )
 
+    messages = []
     for contact in contacts:
         if not contact.partner_user_id:
-            context.broadcast.add_message(
+            messages.append(Message(
                 chat_id=contact.user_id,
                 text=no_contact_text(context.schedule)
-            )
+            ))
 
         else:
             partner_user = find_user(users, user_id=contact.partner_user_id)
-            context.broadcast.add_message(
+            messages.append(Message(
                 chat_id=contact.user_id,
                 text=send_contact_text(partner_user),
-            )
+            ))
+
+    await broadcast(context.bot, messages)
 
 
 async def ask_confirm_contact(context):
@@ -258,16 +271,19 @@ async def ask_confirm_contact(context):
             skip_user_ids.add(contact.user_id)
             skip_user_ids.add(contact.partner_user_id)
 
+    messages = []
     for contact in contacts:
         if contact.user_id in skip_user_ids:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_confirm_contact_text(partner_user)
-        context.broadcast.add_message(
+        messages.append(Message(
             chat_id=contact.user_id,
             text=text
-        )
+        ))
+
+    await broadcast(context.bot, messages)
 
 
 async def ask_contact_feedback(context):
@@ -288,13 +304,16 @@ async def ask_contact_feedback(context):
             skip_user_ids.add(contact.user_id)
             skip_user_ids.add(contact.partner_user_id)
 
+    messages = []
     for contact in contacts:
         if contact.user_id in skip_user_ids:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
         text = ask_contact_feedback_text(partner_user)
-        context.broadcast.add_message(
+        messages.append(Message(
             chat_id=contact.user_id,
             text=text
-        )
+        ))
+
+    await broadcast(context.bot, messages)

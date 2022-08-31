@@ -44,37 +44,28 @@ async def worker(bot, queue):
             chat_id=message.chat_id,
             error=error
         ))
-        await queue.task_done()
+        queue.task_done()
 
 
-class Broadcast:
-    def __init__(self, bot):
-        self.bot = bot
-        self.messages = []
+async def broadcast(bot, messages, pool_size=5, max_rps=30):
+    # https://gist.github.com/showa-yojyo/4ed200d4c41f496a45a7af2612912df3
 
-    def add_message(self, chat_id, text):
-        message = Message(chat_id, text)
-        self.messages.append(message)
+    # https://habr.com/ru/post/543676/
+    # Не больше одного сообщения в секунду в один чат,
+    # Не больше 30 сообщений в секунду вообще
 
-    async def send(self, pool_size=5, max_rps=30):
-        # https://gist.github.com/showa-yojyo/4ed200d4c41f496a45a7af2612912df3
+    queue = asyncio.Queue()
+    tasks = [
+        asyncio.create_task(worker(bot, queue))
+        for _ in range(pool_size)
+    ]
 
-        # https://habr.com/ru/post/543676/
-        # Не больше одного сообщения в секунду в один чат,
-        # Не больше 30 сообщений в секунду вообще
+    await producer(queue, messages, max_rps)
+    await queue.join()
 
-        queue = asyncio.Queue()
-        tasks = [
-            asyncio.create_task(worker(self.bot, queue))
-            for _ in range(pool_size)
-        ]
-
-        await producer(queue, self.messages, max_rps)
-        await queue.join()
-
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(
-            *tasks,
-            return_exceptions=True
-        )
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(
+        *tasks,
+        return_exceptions=True
+    )
