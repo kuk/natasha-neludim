@@ -63,6 +63,14 @@ class FakeDB(DB):
             if _.user_id != user_id
         ]
 
+    async def put_users(self, users):
+        for user in users:
+            await self.put_user(user)
+
+    async def delete_users(self, users):
+        for user in users:
+            await self.delete_user(user)
+
     async def read_contacts(self):
         return self.contacts
 
@@ -80,6 +88,14 @@ class FakeDB(DB):
             _ for _ in self.contacts
             if _.key != key
         ]
+
+    async def put_contacts(self, contacts):
+        for contact in contacts:
+            await self.put_contact(contact)
+
+    async def delete_contacts(self, contacts):
+        for contact in contacts:
+            await self.delete_contact(contact)
 
     async def read_manual_matches(self):
         return self.manual_matches

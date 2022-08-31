@@ -181,31 +181,40 @@ async def create_contacts(context):
         for _ in contacts
     ]
 
-    for match in gen_matches(participate_users, skip_matches, manual_matches):
+    matches = list(gen_matches(participate_users, skip_matches, manual_matches))
+
+    contacts = []
+    for match in matches:
         user_id, partner_user_id = match.key
 
-        contact = Contact(
+        contacts.append(Contact(
             week_index=current_week_index,
             user_id=user_id,
             partner_user_id=partner_user_id
-        )
-        await context.db.put_contact(contact)
-
-        user = find_user(users, user_id=user_id)
-        user.partner_user_id = partner_user_id
-        await context.db.put_user(user)
+        ))
 
         if partner_user_id:
-            contact = Contact(
+            contacts.append(Contact(
                 week_index=current_week_index,
                 user_id=partner_user_id,
                 partner_user_id=user_id
-            )
-            await context.db.put_contact(contact)
+            ))
 
+    for user in users:
+        user.partner_user_id = None
+
+    for match in matches:
+        user_id, partner_user_id = match.key
+
+        user = find_user(users, user_id=user_id)
+        user.partner_user_id = partner_user_id
+
+        if partner_user_id:
             partner_user = find_user(users, user_id=partner_user_id)
             partner_user.partner_user_id = user_id
-            await context.db.put_user(partner_user)
+
+    await context.db.put_contacts(contacts)
+    await context.db.put_users(users)
 
 
 async def send_contacts(context):
