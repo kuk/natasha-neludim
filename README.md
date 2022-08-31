@@ -212,11 +212,11 @@ yc log read default \
   --folder-name natasha-neludim
 ```
 
-Все доступные логи типа `{"user_id": 979875237, "text": "/participate"}`.
+Последние 1000 записей.
 
 ```bash
 yc log read default \
-  --filter 'message: user_id' \
+  --filter 'json_payload.source = "system"' \
   --limit 1000 \
   --since 2020-01-01T00:00:00Z \
   --until 2030-01-01T00:00:00Z \
