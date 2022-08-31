@@ -114,7 +114,7 @@ async def test_cancel_edit(context):
 
 
 async def test_participate(context):
-    context.db.users = [User(user_id=113947584)]
+    context.db.users = [User(user_id=113947584, intro=Intro())]
     await process_update(context, START_JSON.replace('/start', '/participate'))
 
     assert match_trace(context.bot.trace, [

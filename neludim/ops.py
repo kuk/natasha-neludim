@@ -4,6 +4,8 @@ from .const import (
     PARTICIPATE_COMMAND,
     PAUSE_WEEK_COMMAND,
     PAUSE_MONTH_COMMAND,
+    EDIT_LINKS_COMMAND,
+    EDIT_ABOUT_COMMAND,
     CONFIRM_CONTACT_COMMAND,
     FAIL_CONTACT_COMMAND,
     CONTACT_FEEDBACK_COMMAND,
@@ -49,7 +51,7 @@ def ask_agree_participate_text(schedule):
 Бот просит подтверждать участие каждую неделю. Подбирает собеседника только из тех, кто согласился. Это уменьшает число несостоявшихся встреч.'''
 
 
-ASK_EDIT_INTRO_TEXT = '''Заполни, пожалуйста, анкету: ссылки /edit_links или "о себе" /edit_about.
+ASK_EDIT_INTRO_TEXT = f'''Заполни, пожалуйста, анкету: ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}.
 
 Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
 
@@ -64,10 +66,9 @@ def send_contact_text(user):
 
 {intro_text(user.intro)}
 
-/{HELP_COMMAND} - как договориться о встрече
 /{CONFIRM_CONTACT_COMMAND} - договорились
 /{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
-/{CONTACT_FEEDBACK_COMMAND} - оставить фидбек'''
+/{HELP_COMMAND} - советы, как договориться о встрече'''
 
 
 def no_contact_text(schedule):

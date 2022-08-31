@@ -94,8 +94,8 @@ def start_text(schedule):
     return f'''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
 
 С чего начать?
-- Заполни короткую анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
 - Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
+- Заполни короткую анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
 
 /{EDIT_INTRO_COMMAND} - заполнить анкету
 /{PARTICIPATE_COMMAND} - участвовать во встречах
@@ -144,8 +144,7 @@ HELP_TEXT = f'''Бот Нелюдим @neludim_bot организует random c
 /{SHOW_CONTACT_COMMAND} - контакт, анкета собеседника
 /{CONFIRM_CONTACT_COMMAND} - договорились о встрече
 /{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
-/{CONTACT_FEEDBACK_COMMAND} - как прошла встреча
-'''
+/{CONTACT_FEEDBACK_COMMAND} - как прошла встреча'''
 
 
 ######
@@ -215,8 +214,13 @@ TOP_CITIES = [
 #####
 
 
-def participate_text(schedule):
-    return f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
+def participate_text(user, schedule):
+    text = f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
+
+    if not user.intro.links and not user.intro.about:
+        text += f'\n\nЗаполни, пожалуйста, анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'
+
+    return text
 
 
 PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
@@ -418,7 +422,7 @@ async def handle_participate(context, message):
 
     await context.db.put_user(user)
 
-    text = participate_text(context.schedule)
+    text = participate_text(user, context.schedule)
     await message.answer(text=text)
 
 
