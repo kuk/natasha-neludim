@@ -60,7 +60,7 @@ aws configure --profile natasha-neludim
 ru-central1
 ```
 
-Создать табличку.
+Создать таблички.
 
 ```bash
 aws dynamodb create-table \
