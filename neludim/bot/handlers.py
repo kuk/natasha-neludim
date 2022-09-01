@@ -626,6 +626,11 @@ def setup_handlers(context):
         commands=CONTACT_FEEDBACK_COMMAND,
     )
 
+    context.dispatcher.register_message_handler(
+        partial(handle_help, context),
+        commands=HELP_COMMAND,
+    )
+
     # Every call to chat_states filter = db query. Place handlers
     # last. TODO Implement aiogram storage adapter for DynamoDB,
     # natively handle FSM
@@ -644,10 +649,6 @@ def setup_handlers(context):
         chat_states=CONTACT_FEEDBACK_STATE,
     )
 
-    context.dispatcher.register_message_handler(
-        partial(handle_help, context),
-        commands=HELP_COMMAND,
-    )
     context.dispatcher.register_message_handler(
         partial(handle_other, context)
     )
