@@ -272,7 +272,7 @@ async def ask_confirm_contact(context):
 
     messages = []
     for contact in contacts:
-        if contact.user_id in skip_user_ids:
+        if contact.user_id in skip_user_ids or not contact.partner_user_id:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
@@ -305,7 +305,7 @@ async def ask_contact_feedback(context):
 
     messages = []
     for contact in contacts:
-        if contact.user_id in skip_user_ids:
+        if contact.user_id in skip_user_ids or not contact.partner_user_id:
             continue
 
         partner_user = find_user(users, user_id=contact.partner_user_id)
