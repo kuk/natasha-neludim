@@ -216,11 +216,10 @@ yc log read default \
 
 ```bash
 yc log read default \
-  --filter 'json_payload.source = "system"' \
+  --filter 'json_payload.source = "user"' \
   --limit 1000 \
   --since 2020-01-01T00:00:00Z \
   --until 2030-01-01T00:00:00Z \
-  --format text \
   --folder-name natasha-neludim
 ```
 
