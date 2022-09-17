@@ -10,7 +10,7 @@ from aiogram.types import (
 from neludim.const import (
     START_COMMAND,
     HELP_COMMAND,
-    EDIT_INTRO_COMMAND,
+    EDIT_PROFILE_COMMAND,
     EDIT_NAME_COMMAND,
     EDIT_CITY_COMMAND,
     EDIT_LINKS_COMMAND,
@@ -43,10 +43,7 @@ from neludim.text import (
     intro_text,
     EMPTY_SYMBOL
 )
-from neludim.obj import (
-    Intro,
-    User,
-)
+from neludim.obj import User
 
 
 ######
@@ -65,11 +62,11 @@ COMMAND_DESCRIPTIONS = {
     START_COMMAND: 'с чего начать',
     HELP_COMMAND: 'справка',
 
-    EDIT_INTRO_COMMAND: 'поменять анкету',
-    EDIT_NAME_COMMAND: 'поменять имя',
-    EDIT_CITY_COMMAND: 'поменять город',
-    EDIT_LINKS_COMMAND: 'поменять ссылки',
-    EDIT_ABOUT_COMMAND: 'поменять "о себе"',
+    EDIT_PROFILE_COMMAND: 'настроить профиль',
+    EDIT_NAME_COMMAND: 'изменить имя',
+    EDIT_CITY_COMMAND: 'изменить город',
+    EDIT_LINKS_COMMAND: 'изменить ссылки',
+    EDIT_ABOUT_COMMAND: 'изменить "о себе"',
 
     PARTICIPATE_COMMAND: 'участвовать во встречах',
     PAUSE_WEEK_COMMAND: 'пауза на неделю',
@@ -95,9 +92,9 @@ def start_text(schedule):
 
 С чего начать?
 - Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
-- Заполни короткую анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+- Заполни короткую анкету /{EDIT_PROFILE_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
 
-/{EDIT_INTRO_COMMAND} - заполнить анкету
+/{EDIT_PROFILE_COMMAND} - заполнить анкету
 /{PARTICIPATE_COMMAND} - участвовать во встречах
 /{HELP_COMMAND} - как работает бот, как договориться о встрече, список команд'''
 
@@ -131,11 +128,11 @@ HELP_TEXT = f'''Бот Нелюдим @neludim_bot организует random c
 /{START_COMMAND} - с чего начать
 /{HELP_COMMAND} - справка
 
-/{EDIT_INTRO_COMMAND} - заполнить анкету
-/{EDIT_NAME_COMMAND} - поменять имя
-/{EDIT_CITY_COMMAND} - поменять город
-/{EDIT_LINKS_COMMAND} - поменять ссылки
-/{EDIT_ABOUT_COMMAND} - поменять "о себе"
+/{EDIT_PROFILE_COMMAND} - настроить профиль
+/{EDIT_NAME_COMMAND} - изменить имя
+/{EDIT_CITY_COMMAND} - изменить город
+/{EDIT_LINKS_COMMAND} - изменить ссылки
+/{EDIT_ABOUT_COMMAND} - изменить "о себе"
 
 /{PARTICIPATE_COMMAND} - участвовать во встречах
 /{PAUSE_WEEK_COMMAND} - пауза на неделю
@@ -148,17 +145,18 @@ HELP_TEXT = f'''Бот Нелюдим @neludim_bot организует random c
 
 
 ######
-#  INTRO
+#  PROFILE
 ######
 
 
-def edit_intro_text(intro):
-    return f'''{intro_text(intro)}
+def edit_profile_text(user):
+    return f'''{intro_text(user)}
 
-/{EDIT_NAME_COMMAND} - поменять имя
-/{EDIT_CITY_COMMAND} - поменять город
-/{EDIT_LINKS_COMMAND} - поменять ссылки
-/{EDIT_ABOUT_COMMAND} - поменять "о себе"'''
+/{EDIT_NAME_COMMAND} - изменить имя
+/{EDIT_CITY_COMMAND} - изменить город
+/{EDIT_LINKS_COMMAND} - изменить ссылки
+/{EDIT_ABOUT_COMMAND} - изменить "о себе"
+'''
 
 
 EDIT_NAME_TEXT = f'''Напиши своё настоящее имя. Собеседник поймёт, как к тебе обращаться.
@@ -217,8 +215,8 @@ TOP_CITIES = [
 def participate_text(user, schedule):
     text = f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
 
-    if not user.intro.links and not user.intro.about:
-        text += f'\n\nЗаполни, пожалуйста, анкету /{EDIT_INTRO_COMMAND}. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'
+    if not user.links and not user.about:
+        text += f'\n\nЗаполни, пожалуйста, ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'
 
     return text
 
@@ -233,7 +231,7 @@ def no_contact_text(schedule):
 def show_contact_text(user, contact):
     return f'''Контакт собеседника в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
 
-{intro_text(user.intro)}
+{intro_text(user)}
 
 /{CONFIRM_CONTACT_COMMAND} - договорились о встрече
 /{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
@@ -294,9 +292,7 @@ async def handle_start(context, message):
             user_id=message.from_user.id,
             username=message.from_user.username,
             created=context.schedule.now(),
-            intro=Intro(
-                name=message.from_user.full_name,
-            )
+            name=message.from_user.full_name,
         )
         await context.db.put_user(user)
 
@@ -311,13 +307,13 @@ async def handle_start(context, message):
 
 
 #####
-#  INTRO
+#  PROFILE
 ######
 
 
-async def handle_edit_intro(context, message):
+async def handle_edit_profile(context, message):
     user = await context.db.get_user(message.from_user.id)
-    text = edit_intro_text(user.intro)
+    text = edit_profile_text(user)
     await message.answer(text=text)
 
 
@@ -325,7 +321,7 @@ async def handle_edit_name(context, message):
     user = await context.db.get_user(message.from_user.id)
 
     markup = None
-    if not user.intro.name and message.from_user.full_name:
+    if not user.name and message.from_user.full_name:
         markup = ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(message.from_user.full_name)
 
@@ -375,7 +371,7 @@ def parse_command(text):
         return text.lstrip('/')
 
 
-async def handle_edit_intro_states(context, message):
+async def handle_edit_profile_states(context, message):
     state = await context.db.get_chat_state(message.chat.id)
     user = await context.db.get_user(message.from_user.id)
 
@@ -387,17 +383,17 @@ async def handle_edit_intro_states(context, message):
             value = None
 
         if state == EDIT_NAME_STATE:
-            user.intro.name = value
+            user.name = value
         elif state == EDIT_CITY_STATE:
-            user.intro.city = value
+            user.city = value
         elif state == EDIT_LINKS_STATE:
-            user.intro.links = value
+            user.links = value
         elif state == EDIT_ABOUT_STATE:
-            user.intro.about = value
+            user.about = value
 
         await context.db.put_user(user)
 
-    text = edit_intro_text(user.intro)
+    text = edit_profile_text(user)
     await message.answer(
         text=text,
         reply_markup=ReplyKeyboardRemove()
@@ -577,8 +573,8 @@ def setup_handlers(context):
     )
 
     context.dispatcher.register_message_handler(
-        partial(handle_edit_intro, context),
-        commands=EDIT_INTRO_COMMAND
+        partial(handle_edit_profile, context),
+        commands=EDIT_PROFILE_COMMAND
     )
     context.dispatcher.register_message_handler(
         partial(handle_edit_name, context),
@@ -636,7 +632,7 @@ def setup_handlers(context):
     # natively handle FSM
 
     context.dispatcher.register_message_handler(
-        partial(handle_edit_intro_states, context),
+        partial(handle_edit_profile_states, context),
         chat_states=[
             EDIT_NAME_STATE,
             EDIT_CITY_STATE,

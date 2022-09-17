@@ -51,7 +51,7 @@ def ask_agree_participate_text(schedule):
 Бот просит подтверждать участие каждую неделю. Подбирает собеседника только из тех, кто согласился. Это уменьшает число несостоявшихся встреч.'''
 
 
-ASK_EDIT_INTRO_TEXT = f'''Заполни, пожалуйста, анкету: ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}.
+ASK_EDIT_ABOUT_TEXT = f'''Заполни, пожалуйста, ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}.
 
 Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
 
@@ -64,7 +64,7 @@ ASK_EDIT_INTRO_TEXT = f'''Заполни, пожалуйста, анкету: с
 def send_contact_text(user):
     return f'''Бот подобрал тебе собеседника! Его контакт в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>. Пожалуйста, договоритесь про время и место встречи.
 
-{intro_text(user.intro)}
+{intro_text(user)}
 
 /{CONFIRM_CONTACT_COMMAND} - договорились
 /{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
@@ -151,7 +151,7 @@ async def ask_agree_participate(context):
     await broadcast(context.bot, messages)
 
 
-async def ask_edit_intro(context):
+async def ask_edit_about(context):
     users = await context.db.read_users()
     next_week_index = context.schedule.current_week_index() + 1
 
@@ -160,12 +160,12 @@ async def ask_edit_intro(context):
         if (
                 user.agreed_participate
                 and week_index(user.agreed_participate) + 1 == next_week_index
-                and not user.intro.links
-                and not user.intro.about
+                and not user.links
+                and not user.about
         ):
             messages.append(Message(
                 chat_id=user.user_id,
-                text=ASK_EDIT_INTRO_TEXT
+                text=ASK_EDIT_ABOUT_TEXT
             ))
 
     await broadcast(context.bot, messages)

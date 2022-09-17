@@ -10,7 +10,6 @@ from neludim.const import (
 )
 from neludim.obj import (
     User,
-    Intro,
     Contact,
     Match,
 )
@@ -18,7 +17,7 @@ from neludim.schedule import week_index_monday
     
 from neludim.ops import (
     ask_agree_participate,
-    ask_edit_intro,
+    ask_edit_about,
     create_contacts,
     send_contacts,
     ask_confirm_contact,
@@ -46,16 +45,16 @@ async def test_ask_agree_participate(context):
     ])
 
 
-async def test_ask_edit_intro(context):
+async def test_ask_edit_about(context):
     agreed_participate = week_index_monday(context.schedule.current_week_index())
     context.db.users = [
         User(user_id=0),
-        User(user_id=1, agreed_participate=agreed_participate, intro=Intro()),
-        User(user_id=2, agreed_participate=agreed_participate, intro=Intro(links='links')),
-        User(user_id=3, agreed_participate=agreed_participate, intro=Intro(about='about')),
-        User(user_id=4, intro=Intro()),
+        User(user_id=1, agreed_participate=agreed_participate),
+        User(user_id=2, agreed_participate=agreed_participate, links='links'),
+        User(user_id=3, agreed_participate=agreed_participate, about='about'),
+        User(user_id=4),
     ]
-    await ask_edit_intro(context)
+    await ask_edit_about(context)
     assert match_trace(context.bot.trace, [
         ['sendMessage', '"chat_id": 1'],
     ])
@@ -64,9 +63,9 @@ async def test_ask_edit_intro(context):
 async def test_create_contacts(context):
     agreed_participate = week_index_monday(context.schedule.current_week_index() - 1)
     context.db.users = [
-        User(user_id=1, agreed_participate=agreed_participate, intro=Intro()),
-        User(user_id=2, agreed_participate=agreed_participate, intro=Intro()),
-        User(user_id=3, agreed_participate=agreed_participate, intro=Intro()),
+        User(user_id=1, agreed_participate=agreed_participate),
+        User(user_id=2, agreed_participate=agreed_participate),
+        User(user_id=3, agreed_participate=agreed_participate),
     ]
     await create_contacts(context)
     assert context.db.contacts == [
@@ -78,9 +77,9 @@ async def test_create_contacts(context):
 
 async def test_send_contacts(context):
     context.db.users = [
-        User(user_id=1, intro=Intro()),
-        User(user_id=2, intro=Intro()),
-        User(user_id=3, intro=Intro()),
+        User(user_id=1),
+        User(user_id=2),
+        User(user_id=3),
     ]
     context.db.contacts = [
         Contact(week_index=0, user_id=1, partner_user_id=3),

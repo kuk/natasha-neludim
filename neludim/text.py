@@ -32,8 +32,8 @@ def day_month(datetime):
 def user_mention(user):
     if user.username:
         return f'@{user.username}'
-    elif user.intro.name:
-        return user.intro.name
+    elif user.name:
+        return user.name
     return user.user_id
 
 
@@ -44,8 +44,8 @@ def user_url(user_id):
 EMPTY_SYMBOL = '∅'
 
 
-def intro_text(intro):
-    return f'''Имя: {intro.name or EMPTY_SYMBOL}
-Город: {intro.city or EMPTY_SYMBOL}
-Ссылки: {intro.links or EMPTY_SYMBOL}
-О себе: {intro.about or EMPTY_SYMBOL}'''
+def intro_text(user):
+    return f'''Имя: {user.name or EMPTY_SYMBOL}
+Город: {user.city or EMPTY_SYMBOL}
+Ссылки: {user.links or EMPTY_SYMBOL}
+О себе: {user.about or EMPTY_SYMBOL}'''

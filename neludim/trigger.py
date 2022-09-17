@@ -21,7 +21,7 @@ from .ops import (
     send_contacts,
     ask_confirm_contact,
     ask_agree_participate,
-    ask_edit_intro,
+    ask_edit_about,
     ask_contact_feedback,
 )
 
@@ -58,7 +58,7 @@ SCHEDULE = {
     (MONDAY, 9): send_contacts,
     (WEDNESDAY, 9): ask_confirm_contact,
     (SATURDAY, 9): ask_agree_participate,
-    (SATURDAY, 17): ask_edit_intro,
+    (SATURDAY, 17): ask_edit_about,
     (SUNDAY, 17): ask_contact_feedback,
 }
 

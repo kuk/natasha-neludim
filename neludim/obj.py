@@ -18,14 +18,6 @@ class Chat:
 
 
 @dataclass
-class Intro:
-    name: str = None
-    city: str = None
-    links: str = None
-    about: str = None
-
-
-@dataclass
 class User:
     user_id: int
     username: str = None
@@ -35,7 +27,10 @@ class User:
     paused: Datetime = None
     pause_period: str = None
 
-    intro: Intro = None
+    name: str = None
+    city: str = None
+    links: str = None
+    about: str = None
 
     partner_user_id: int = None
 

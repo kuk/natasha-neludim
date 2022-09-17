@@ -1,7 +1,6 @@
 
 from neludim.obj import (
     User,
-    Intro,
     Contact,
     Match
 )
@@ -15,9 +14,7 @@ async def test_chats(db):
 async def test_users(db):
     user = User(
         user_id=1,
-        intro=Intro(
-            name='abc'
-        )
+        name='abc'
     )
 
     await db.put_user(user)
