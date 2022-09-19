@@ -10,7 +10,7 @@ from .const import (
     AWS_KEY_ID,
     AWS_KEY,
 
-    N, S, M
+    N, S, M, SS
 )
 from .obj import obj_annots
 
@@ -141,6 +141,8 @@ def dynamo_type(annot):
         return N
     elif annot in (str, Datetime):
         return S
+    elif annot == [str]:
+        return SS
     elif is_dataclass(annot):
         return M
 
@@ -148,7 +150,7 @@ def dynamo_type(annot):
 def dynamo_deserialize_value(value, annot):
     if annot == int:
         return int(value)
-    elif annot == str:
+    elif annot in (str, [str]):
         return value
     elif annot == Datetime:
         return Datetime.fromisoformat(value)
@@ -159,7 +161,7 @@ def dynamo_deserialize_value(value, annot):
 def dynamo_serialize_value(value, annot):
     if annot == int:
         return str(value)
-    elif annot == str:
+    elif annot in (str, [str]):
         return value
     elif annot == Datetime:
         return value.isoformat()

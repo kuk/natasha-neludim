@@ -75,6 +75,14 @@ BOOL = 'BOOL'
 N = 'N'
 S = 'S'
 M = 'M'
+SS = 'SS'
+
+######
+#  TAGS
+#######
+
+KRUTAN = 'krutan'
+RESEARCH = 'research'
 
 ######
 #  DB

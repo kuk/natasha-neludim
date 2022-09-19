@@ -14,7 +14,8 @@ async def test_chats(db):
 async def test_users(db):
     user = User(
         user_id=1,
-        name='abc'
+        name='abc',
+        tags=['a', 'b']
     )
 
     await db.put_user(user)

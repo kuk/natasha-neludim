@@ -32,6 +32,8 @@ class User:
     links: str = None
     about: str = None
 
+    tags: [str] = None
+
     partner_user_id: int = None
 
 
