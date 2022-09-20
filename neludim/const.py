@@ -81,8 +81,8 @@ SS = 'SS'
 #  TAGS
 #######
 
-KRUTAN = 'krutan'
-RESEARCH = 'research'
+KRUTAN_TAG = 'krutan'
+RESEARCH_TAG = 'research'
 
 ######
 #  DB
