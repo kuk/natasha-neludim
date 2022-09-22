@@ -42,8 +42,8 @@ FAIL_STATE = 'fail'
 #  PERIOD
 #####
 
-WEEK = 'week'
-MONTH = 'month'
+WEEK_PERIOD = 'week'
+MONTH_PERIOD = 'month'
 
 #####
 #  SCHEDULE
@@ -83,6 +83,13 @@ SS = 'SS'
 
 KRUTAN_TAG = 'krutan'
 RESEARCH_TAG = 'research'
+
+#####
+#  ROUND
+######
+
+MAIN_ROUND = 'main'
+EXTRA_ROUND = 'extra'
 
 ######
 #  DB

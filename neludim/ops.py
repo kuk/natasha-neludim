@@ -13,8 +13,11 @@ from .const import (
     CONFIRM_STATE,
     FAIL_STATE,
 
-    WEEK,
-    MONTH,
+    MAIN_ROUND,
+    EXTRA_ROUND,
+
+    WEEK_PERIOD,
+    MONTH_PERIOD,
 )
 from .text import (
     day_month,
@@ -35,9 +38,7 @@ from .match import gen_matches
 
 
 #######
-#
 #  TEXT
-#
 ####
 
 
@@ -71,10 +72,18 @@ def send_contact_text(user):
 /{HELP_COMMAND} - советы, как договориться о встрече'''
 
 
-def no_contact_text(schedule):
-    return f'''Бот не смог подобрать тебе пару. Причины:
+def no_contact_text(schedule, round):
+    if round == MAIN_ROUND:
+        return f'''Бот не смог подобрать тебе собеседника. Причины:
 - Нечетное число участников. Бот исключает одного случайного.
 - Мало участников на этой неделе, ты уже со всеми встречался.
+
+Бот повторит попытку в четверг {day_month(schedule.current_week_thursday())}. По статистике у 15-30% участников не получается договориться о встрече, бот подберет собеседника среди них.'''
+
+    elif round == EXTRA_ROUND:
+        return '''Бот не смог подобрать тебе собеседника. Причины:
+- Нечетное число участников. Бот исключает одного случайного.
+- На этой неделе у многих получилось договориться о встрече, с остальными ты уже встречался.
 
 Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
@@ -100,9 +109,7 @@ def ask_contact_feedback_text(user):
 
 
 ######
-#
 #   OPS
-#
 ######
 
 
@@ -128,9 +135,9 @@ async def ask_agree_participate(context):
     messages = []
     for user in users:
         if user.paused:
-            if user.pause_period == WEEK:
+            if user.pause_period == WEEK_PERIOD:
                 offset = 1
-            elif user.pause_period == MONTH:
+            elif user.pause_period == MONTH_PERIOD:
                 offset = 4
 
             if next_week_index <= week_index(user.paused) + offset:
@@ -171,19 +178,46 @@ async def ask_edit_about(context):
     await broadcast(context.bot, messages)
 
 
-async def create_contacts(context):
-    users = await context.db.read_users()
-    contacts = await context.db.read_contacts()
-    manual_matches = await context.db.read_manual_matches()
-    current_week_index = context.schedule.current_week_index()
-
-    participate_users = []
+def main_participate_users(users, current_week_index):
     for user in users:
         if (
                 user.agreed_participate
                 and week_index(user.agreed_participate) + 1 == current_week_index
         ):
-            participate_users.append(user)
+            yield user
+
+
+def extra_participate_users(users, contacts, current_week_index):
+    user_ids = set()
+    for contact in contacts:
+        if (
+                contact.week_index == current_week_index
+                and (contact.state == FAIL_STATE or contact.partner_user_id is None)
+        ):
+            user_ids.add(contact.user_id)
+
+    for user in users:
+        if (
+                user.user_id in user_ids
+
+                # In case /fail_contact + /pause_week, skip thursday
+                # match and skip next week
+                and user.agreed_participate
+        ):
+            yield user
+
+
+async def create_contacts(context, round):
+    users = await context.db.read_users()
+    contacts = await context.db.read_contacts()
+    manual_matches = await context.db.read_manual_matches()
+    current_week_index = context.schedule.current_week_index()
+
+    if round == MAIN_ROUND:
+        participate_users = list(main_participate_users(users, current_week_index))
+
+    elif round == EXTRA_ROUND:
+        participate_users = list(extra_participate_users(users, contacts, current_week_index))
 
     skip_matches = [
         Match(_.user_id, _.partner_user_id)
@@ -198,6 +232,7 @@ async def create_contacts(context):
 
         contacts.append(Contact(
             week_index=current_week_index,
+            round=round,
             user_id=user_id,
             partner_user_id=partner_user_id
         ))
@@ -205,12 +240,14 @@ async def create_contacts(context):
         if partner_user_id:
             contacts.append(Contact(
                 week_index=current_week_index,
+                round=round,
                 user_id=partner_user_id,
                 partner_user_id=user_id
             ))
 
-    for user in users:
-        user.partner_user_id = None
+    if round == MAIN_ROUND:
+        for user in users:
+            user.partner_user_id = None
 
     for match in matches:
         user_id, partner_user_id = match.key
@@ -226,7 +263,15 @@ async def create_contacts(context):
     await context.db.put_users(users)
 
 
-async def send_contacts(context):
+async def create_main_contacts(context):
+    await create_contacts(context, MAIN_ROUND)
+
+
+async def create_extra_contacts(context):
+    await create_contacts(context, EXTRA_ROUND)
+
+
+async def send_contacts(context, round):
     users = await context.db.read_users()
     contacts = await context.db.read_contacts()
     contacts = find_contacts(
@@ -236,10 +281,13 @@ async def send_contacts(context):
 
     messages = []
     for contact in contacts:
+        if contact.round != round:
+            continue
+
         if not contact.partner_user_id:
             messages.append(Message(
                 chat_id=contact.user_id,
-                text=no_contact_text(context.schedule)
+                text=no_contact_text(context.schedule, round)
             ))
 
         else:
@@ -250,6 +298,14 @@ async def send_contacts(context):
             ))
 
     await broadcast(context.bot, messages)
+
+
+async def send_main_contacts(context):
+    await send_contacts(context, MAIN_ROUND)
+
+
+async def send_extra_contacts(context):
+    await send_contacts(context, EXTRA_ROUND)
 
 
 async def ask_confirm_contact(context):

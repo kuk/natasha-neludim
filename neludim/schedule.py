@@ -17,6 +17,10 @@ def week_index_monday(index):
     return START_DATE + Timedelta(days=7 * index)
 
 
+def week_index_thursday(index):
+    return week_index_monday(index) + Timedelta(days=3)
+
+
 class Schedule:
     now = Datetime.utcnow
 
@@ -24,5 +28,11 @@ class Schedule:
         return week_index(self.now())
 
     def next_week_monday(self):
-        next_week_index = self.current_week_index() + 1
-        return week_index_monday(next_week_index)
+        return week_index_monday(
+            self.current_week_index() + 1
+        )
+
+    def current_week_thursday(self):
+        return week_index_thursday(
+            self.current_week_index()
+        )

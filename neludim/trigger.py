@@ -1,4 +1,5 @@
 
+from dataclasses import dataclass
 from datetime import datetime as Datetime
 from functools import partial
 
@@ -11,23 +12,62 @@ from .log import (
 from .const import (
     MONDAY,
     WEDNESDAY,
+    THURSDAY,
     SATURDAY,
     SUNDAY,
 
     WEEKDAYS,
 )
-from .ops import (
-    create_contacts,
-    send_contacts,
-    ask_confirm_contact,
-    ask_agree_participate,
-    ask_edit_about,
-    ask_contact_feedback,
-)
+from . import ops
 
 
 ######
-#  PARSE
+#  TASKS
+######
+
+
+# 0 0,9,17 ? * MON,WED,THU,SAT,SUN *
+# msk+3, 50% users from msk, 9->12, 17->20
+
+
+@dataclass
+class Task:
+    weekday: str
+    hour: int
+    op: callable
+
+    @property
+    def name(self):
+        return self.op.__name__
+
+
+TASKS = [
+    Task(MONDAY, 0, ops.create_main_contacts),
+    Task(MONDAY, 9, ops.send_main_contacts),
+
+    Task(WEDNESDAY, 9, ops.ask_confirm_contact),
+
+    Task(THURSDAY, 0, ops.create_extra_contacts),
+    Task(THURSDAY, 9, ops.send_extra_contacts),
+
+    Task(SATURDAY, 9, ops.ask_agree_participate),
+    Task(SATURDAY, 17, ops.ask_edit_about),
+
+    Task(SUNDAY, 17, ops.ask_contact_feedback),
+]
+
+
+def find_tasks(tasks, datetime):
+    weekday = WEEKDAYS[datetime.weekday()]
+    hour = datetime.hour
+
+    for task in tasks:
+        if task.weekday == weekday and task.hour == hour:
+            yield task
+
+
+#####
+#  APP
 #####
 
 
@@ -44,40 +84,14 @@ def parse_trigger(data):
         return parse_datetime(item['event_metadata']['created_at'])
 
 
-#######
-#  SCHEDULE
-#######
-
-
-# 0 0,9,17 ? * MON,WED,SAT,SUN *
-# msk+3, 50% users from msk, 9->12, 17->20
-
-
-SCHEDULE = {
-    (MONDAY, 0): create_contacts,
-    (MONDAY, 9): send_contacts,
-    (WEDNESDAY, 9): ask_confirm_contact,
-    (SATURDAY, 9): ask_agree_participate,
-    (SATURDAY, 17): ask_edit_about,
-    (SUNDAY, 17): ask_contact_feedback,
-}
-
-
-#######
-#  APP
-#######
-
-
 async def handle_trigger(context, request):
     data = await request.json()
     datetime = parse_trigger(data)
 
-    weekday = WEEKDAYS[datetime.weekday()]
-    hour = datetime.hour
-    op = SCHEDULE.get((weekday, hour))
-    if op:
-        log.info(json_msg(op=op.__name__))
-        await op(context)
+    tasks = find_tasks(TASKS, datetime)
+    for task in tasks:
+        log.info(json_msg(task=task.name))
+        await task.op(context)
 
     return web.Response()
 

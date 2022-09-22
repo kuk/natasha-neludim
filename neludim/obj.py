@@ -5,6 +5,8 @@ from dataclasses import (
     fields,
 )
 
+from .const import MAIN_ROUND
+
 
 def obj_annots(obj):
     for field in fields(obj):
@@ -45,6 +47,7 @@ class Contact:
     # no partner for this week: odd participants
     partner_user_id: int = None
 
+    round: str = MAIN_ROUND
     state: str = None
     feedback: str = None
 

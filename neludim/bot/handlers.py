@@ -33,8 +33,11 @@ from neludim.const import (
     CONFIRM_STATE,
     FAIL_STATE,
 
-    WEEK,
-    MONTH,
+    WEEK_PERIOD,
+    MONTH_PERIOD,
+
+    MAIN_ROUND,
+    EXTRA_ROUND,
 )
 from neludim.text import (
     day_month,
@@ -113,16 +116,17 @@ HELP_TEXT = f'''Бот Нелюдим @neludim_bot организует random c
 
 <b>Расписание</>
 - Понедельник - бот присылает контакт и анкету собеседника
-- Среда - напоминает договориться о встрече
+- Среда - спрашивает "получилось договориться о встрече?"
+- Четверг - присылает новый контакт и анкету тем кто ответ "нет" в среду
 - Суббота - спрашивает "участвуешь на следующей неделе?"
-- Воскресенье - спрашивает "как прошла встреча"
+- Воскресенье - спрашивает "как прошла встреча?"
 
 <b>Как договориться о встрече</b>
-Собеседник знает, что у вас назначена встреча, это не холодный контакт. Нужно договориться про время и место. Если живете в одном городе, лучше встретиться вживую. Созваниваться удобно по Зуму или в Телеграме.
+Собеседник согласился участвовать во встречах, получил анкету. Твоя задача договориться про время и место. Примеры первых сообщений:
+- Привет, бот Нелюдим дал твой контакт. Когда удобно встретиться/созвониться на этой неделе? Могу в будни после 17.
+- Хай, я от Нелюдима ) Ты в Сбере на Кутузовской? Можно там. Когда удобно? Могу в среду, четверг после 18.
 
-Примеры первых сообщений:
-- Привет, бот Нелюдим дал твой контакт. Когда удобно встретиться/созвониться на этой неделе?
-- Хай, я от Нелюдима ) Ты в Сбере на Кутузовской? Можно там. Когда удобно?
+По статистике 15-30% участников не могу договориться о встрече. Если собеседник не отвечает, отказывается или переносит, нажми /{FAIL_CONTACT_COMMAND}, в четверг бот пришлёт контакт нового собеседника.
 
 <b>Команды</b>
 /{START_COMMAND} - с чего начать
@@ -212,20 +216,20 @@ TOP_CITIES = [
 #####
 
 
-def participate_text(user, schedule):
-    text = f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
+def lines_text(lines):
+    return '\n'.join(lines)
+
+
+def participate_lines(user, schedule):
+    yield f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
 
     if not user.links and not user.about:
-        text += f'\n\nЗаполни, пожалуйста, ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'
+        yield f'''
+Заполни, пожалуйста, ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
 
-    return text
 
-
+NO_CONTACT_TEXT = 'Бот не назначил тебе собеседника.'
 PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
-
-
-def no_contact_text(schedule):
-    return f'Бот не назначил тебе собеседника. Бот составляет пары по понедельникам, очередной раунд {day_month(schedule.next_week_monday())}.'
 
 
 def show_contact_text(user, contact):
@@ -243,8 +247,14 @@ CONFIRM_CONTACT_TEXT = f'''Пометил, что вы договорились 
 /{CONTACT_FEEDBACK_COMMAND} - оставить фидбек о встрече'''
 
 
-def fail_contact_text(schedule):
-    return f'''Жалко, что встреча не состоялась.
+def fail_contact_text(schedule, round):
+    if round == MAIN_ROUND:
+        return f'''Пометил, что не получилось договориться. Бот подберет нового собеседника в четверг {day_month(schedule.current_week_thursday())}.
+
+/{CONFIRM_CONTACT_COMMAND} - всё-таки получилось договориться, не надо подбирать нового'''
+
+    elif round == EXTRA_ROUND:
+        return f'''Жалко, что встреча не состоялась.
 
 Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
@@ -418,7 +428,7 @@ async def handle_participate(context, message):
 
     await context.db.put_user(user)
 
-    text = participate_text(user, context.schedule)
+    text = lines_text(participate_lines(user, context.schedule))
     await message.answer(text=text)
 
 
@@ -430,9 +440,9 @@ async def handle_pause(context, message):
 
     command = parse_command(message.text)
     if command == PAUSE_WEEK_COMMAND:
-        user.pause_period = WEEK
+        user.pause_period = WEEK_PERIOD
     elif command == PAUSE_MONTH_COMMAND:
-        user.pause_period = MONTH
+        user.pause_period = MONTH_PERIOD
 
     await context.db.put_user(user)
     await message.answer(text=PAUSE_TEXT)
@@ -447,8 +457,7 @@ async def handle_contact(context, message):
     user = await context.db.get_user(message.from_user.id)
 
     if not user.partner_user_id:
-        text = no_contact_text(context.schedule)
-        await message.answer(text=text)
+        await message.answer(text=NO_CONTACT_TEXT)
         return
 
     key = (
@@ -458,8 +467,7 @@ async def handle_contact(context, message):
     )
     contact = await context.db.get_contact(key)
     if not contact:
-        text = no_contact_text(context.schedule)
-        await message.answer(text=text)
+        await message.answer(text=NO_CONTACT_TEXT)
         return
 
     return contact
@@ -494,7 +502,7 @@ async def handle_fail_contact(context, message):
     contact.state = FAIL_STATE
     await context.db.put_contact(contact)
 
-    text = fail_contact_text(context.schedule)
+    text = fail_contact_text(context.schedule, contact.round)
     await message.answer(text=text)
 
 

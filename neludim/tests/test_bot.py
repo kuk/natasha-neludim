@@ -4,7 +4,10 @@ from neludim.obj import (
     Contact,
 )
 from neludim.const import (
-    MONTH,
+    MONTH_PERIOD,
+
+    MAIN_ROUND,
+    EXTRA_ROUND,
 
     CONFIRM_STATE,
     FAIL_STATE,
@@ -136,7 +139,7 @@ async def test_pause(context):
     user = context.db.users[0]
     assert user.agreed_participate is None
     assert user.paused == context.schedule.now()
-    assert user.pause_period == MONTH
+    assert user.pause_period == MONTH_PERIOD
 
 
 #######
@@ -174,13 +177,24 @@ async def test_confirm_contact(context):
     assert context.db.contacts[0].state == CONFIRM_STATE
 
 
-async def test_fail_contact(context):
+async def test_fail_main_contact(context):
     context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
-    context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584)]
+    context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584, round=MAIN_ROUND)]
     await process_update(context, START_JSON.replace('/start', '/fail_contact'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Жалко'],
+        ['sendMessage', 'Бот подберет нового собеседника в четверг'],
+    ])
+    assert context.db.contacts[0].state == FAIL_STATE
+
+
+async def test_fail_extra_contact(context):
+    context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
+    context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584, round=EXTRA_ROUND)]
+    await process_update(context, START_JSON.replace('/start', '/fail_contact'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Жалко, что встреча не состоялась'],
     ])
     assert context.db.contacts[0].state == FAIL_STATE
 
