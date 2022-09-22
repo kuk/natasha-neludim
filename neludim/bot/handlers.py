@@ -35,9 +35,6 @@ from neludim.const import (
 
     WEEK_PERIOD,
     MONTH_PERIOD,
-
-    MAIN_ROUND,
-    EXTRA_ROUND,
 )
 from neludim.text import (
     day_month,
@@ -247,13 +244,13 @@ CONFIRM_CONTACT_TEXT = f'''Пометил, что вы договорились 
 /{CONTACT_FEEDBACK_COMMAND} - оставить фидбек о встрече'''
 
 
-def fail_contact_text(schedule, round):
-    if round == MAIN_ROUND:
+def fail_contact_text(schedule):
+    if schedule.now() < schedule.current_week_thursday():
         return f'''Пометил, что не получилось договориться. Бот подберет нового собеседника в четверг {day_month(schedule.current_week_thursday())}.
 
 /{CONFIRM_CONTACT_COMMAND} - всё-таки получилось договориться, не надо подбирать нового'''
 
-    elif round == EXTRA_ROUND:
+    else:
         return f'''Жалко, что встреча не состоялась.
 
 Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
@@ -502,7 +499,7 @@ async def handle_fail_contact(context, message):
     contact.state = FAIL_STATE
     await context.db.put_contact(contact)
 
-    text = fail_contact_text(context.schedule, contact.round)
+    text = fail_contact_text(context.schedule)
     await message.answer(text=text)
 
 

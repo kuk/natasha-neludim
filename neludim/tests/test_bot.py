@@ -1,4 +1,6 @@
 
+from datetime import timedelta as Timedelta
+
 from neludim.obj import (
     User,
     Contact,
@@ -189,6 +191,7 @@ async def test_fail_main_contact(context):
 
 
 async def test_fail_extra_contact(context):
+    context.schedule.date += Timedelta(days=4)
     context.db.users = [User(user_id=113947584, partner_user_id=113947584)]
     context.db.contacts = [Contact(week_index=0, user_id=113947584, partner_user_id=113947584, round=EXTRA_ROUND)]
     await process_update(context, START_JSON.replace('/start', '/fail_contact'))

@@ -117,8 +117,10 @@ class FakeDB(DB):
 
 
 class FakeSchedule(Schedule):
+    date = START_DATE
+
     def now(self):
-        return START_DATE
+        return self.date
 
 
 class FakeContext(Context):
