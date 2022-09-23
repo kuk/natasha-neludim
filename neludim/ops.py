@@ -119,11 +119,12 @@ def find_contacts(contacts, week_index=None):
             yield contact
 
 
-def find_user(users, user_id=None, username=None):
+def find_user(users, user_id=None, username=None, name=None):
     for user in users:
         if (
                 user_id is not None and user.user_id == user_id
                 or username is not None and user.username == username
+                or name is not None and user.name == name
         ):
             return user
 
