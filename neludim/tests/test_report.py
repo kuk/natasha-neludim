@@ -23,7 +23,7 @@ def test_report():
     users = [
         User(user_id=1, username='a', tags=[KRUTAN_TAG]),
         User(user_id=2, username='b'),
-        User(user_id=3, name='C'),
+        User(user_id=3, name='C', paused=True),
     ]
 
     records = list(gen_report(users, contacts, week_index=0))
@@ -32,9 +32,9 @@ P - pause
 FT - first_time
 
 C - confirm
-F - fail
+F! - fail
 NP - no_partner
 
-KR P  FT C  ·  @a
+KR ·  FT C  ·  @a
 ·  P  FT NP ·  C 
-·  P  FT C  4  @b'''
+·  ·  FT C  4  @b'''

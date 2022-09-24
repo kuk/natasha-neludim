@@ -79,7 +79,14 @@ def gen_report(users, contacts, week_index):
     id_users = {_.user_id: _ for _ in users}
 
     for user_id, contacts in user_id_contacts.items():
-        paused = user_id not in next_week_user_ids
+        user = id_users[user_id]
+
+        if next_week_user_ids:
+            paused = user_id not in next_week_user_ids
+        else:
+            # Current week
+            paused = bool(user.paused)
+
         first_time = user_id not in previous_weeks_user_ids
 
         partner_contacts = [_ for _ in contacts if _.partner_user_id]
@@ -101,7 +108,6 @@ def gen_report(users, contacts, week_index):
         else:
             feedback = None
 
-        user = id_users[user_id]
         mention = user_mention(user)
         is_krutan = KRUTAN_TAG in (user.tags or [])
 
@@ -118,7 +124,7 @@ def gen_report(users, contacts, week_index):
 EMPTY_SYMBOL = '·'
 SHORT_STATES = {
     CONFIRM_STATE: 'C',
-    FAIL_STATE: 'F',
+    FAIL_STATE: 'F!',
     NO_PARTNER_STATE: 'NP'
 }
 
@@ -127,7 +133,7 @@ P - pause
 FT - first_time
 
 C - confirm
-F - fail
+F! - fail
 NP - no_partner
 '''
 
