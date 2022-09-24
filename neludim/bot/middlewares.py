@@ -10,9 +10,15 @@ from neludim.log import (
 
 
 class PrivateMiddleware(BaseMiddleware):
-    async def on_pre_process_message(self, message, data):
-        if message.chat.type != ChatType.PRIVATE:
+    def on_pre_process(self, type):
+        if type != ChatType.PRIVATE:
             raise CancelHandler
+
+    async def on_pre_process_message(self, message, data):
+        self.on_pre_process(message.chat.type)
+
+    async def on_pre_process_callback_query(self, query, data):
+        self.on_pre_process(query.message.chat.type)
 
 
 class LoggingMiddleware(BaseMiddleware):
@@ -20,6 +26,12 @@ class LoggingMiddleware(BaseMiddleware):
         log.info(json_msg(
             user_id=message.from_user.id,
             text=message.text
+        ))
+
+    async def on_pre_process_callback_query(self, query, data):
+        log.info(json_msg(
+            user_id=query.from_user.id,
+            text=query.data
         ))
 
 

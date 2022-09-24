@@ -27,6 +27,7 @@ from neludim.ops import (
     send_extra_contacts,
     ask_confirm_contact,
     ask_contact_feedback,
+    tag_participate_users,
 )
 
 
@@ -152,4 +153,20 @@ async def test_ask_contact_feedback(context):
     await ask_contact_feedback(context)
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@d'],
+    ])
+
+
+async def test_tag_participate_users(context):
+    week_index = context.schedule.current_week_index()
+    context.db.users = [
+        User(user_id=1),
+        User(
+            user_id=2, username='b',
+            agreed_participate=week_index_monday(week_index),
+            about='about'
+        ),
+    ]
+    await tag_participate_users(context)
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '@b'],
     ])

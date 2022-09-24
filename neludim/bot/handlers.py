@@ -8,6 +8,8 @@ from aiogram.types import (
 )
 
 from neludim.const import (
+    ADMIN_USER_ID,
+
     START_COMMAND,
     HELP_COMMAND,
     EDIT_PROFILE_COMMAND,
@@ -24,6 +26,9 @@ from neludim.const import (
     CONFIRM_CONTACT_COMMAND,
     FAIL_CONTACT_COMMAND,
     CONTACT_FEEDBACK_COMMAND,
+
+    ADD_TAG_PREFIX,
+    DELETE_TAGS_PREFIX,
 
     EDIT_NAME_STATE,
     EDIT_CITY_STATE,
@@ -44,6 +49,17 @@ from neludim.text import (
     EMPTY_SYMBOL
 )
 from neludim.obj import User
+
+from .callback_data import (
+    AddTagCallbackData,
+    DeleteTagsCallbackData,
+
+    deserialize_callback_data,
+)
+from .tag_user import (
+    tag_user_text,
+    tag_user_markup
+)
 
 
 ######
@@ -553,6 +569,54 @@ async def handle_contact_feedback_state(context, message):
     )
 
 
+#####
+#  TAG
+#####
+
+
+async def update_tag_message(context, query, user):
+    await context.bot.edit_message_text(
+        text=tag_user_text(user),
+        chat_id=query.from_user.id,
+        message_id=query.message.message_id,
+        reply_markup=tag_user_markup(user)
+    )
+
+
+async def handle_add_tag(context, query):
+    callback_data = deserialize_callback_data(query.data, AddTagCallbackData)
+
+    user = await context.db.get_user(callback_data.user_id)
+
+    if not user.tags:
+        user.tags = []
+
+    if callback_data.tag in user.tags:
+        # Make sure user is updated. "Message is not modified:
+        # specified new message content and reply markup are exactly
+        # the same as a current content"
+        return
+
+    user.tags.append(callback_data.tag)
+
+    await context.db.put_user(user)
+    await update_tag_message(context, query, user)
+
+
+async def handle_delete_tags(context, query):
+    callback_data = deserialize_callback_data(query.data, DeleteTagsCallbackData)
+
+    user = await context.db.get_user(callback_data.user_id)
+
+    if user.tags == []:
+        return
+
+    user.tags = []
+
+    await context.db.put_user(user)
+    await update_tag_message(context, query, user)
+
+
 ######
 #  HELP/OTHER
 ########
@@ -630,6 +694,17 @@ def setup_handlers(context):
     context.dispatcher.register_message_handler(
         partial(handle_help, context),
         commands=HELP_COMMAND,
+    )
+
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_add_tag, context),
+        user_id=ADMIN_USER_ID,
+        text_startswith=ADD_TAG_PREFIX
+    )
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_delete_tags, context),
+        user_id=ADMIN_USER_ID,
+        text_startswith=DELETE_TAGS_PREFIX
     )
 
     # Every call to chat_states filter = db query. Place handlers

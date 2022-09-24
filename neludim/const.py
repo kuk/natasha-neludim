@@ -83,6 +83,10 @@ SS = 'SS'
 
 KRUTAN_TAG = 'krutan'
 RESEARCH_TAG = 'research'
+TAGS = [
+    KRUTAN_TAG,
+    RESEARCH_TAG,
+]
 
 #####
 #  ROUND
@@ -131,6 +135,13 @@ SHOW_CONTACT_COMMAND = 'show_contact'
 CONFIRM_CONTACT_COMMAND = 'confirm_contact'
 FAIL_CONTACT_COMMAND = 'fail_contact'
 CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
+
+######
+#  CALLBACK DATA
+######
+
+ADD_TAG_PREFIX = 'add_tag'
+DELETE_TAGS_PREFIX = 'delete_tags'
 
 ######
 #  PORT

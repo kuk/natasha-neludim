@@ -215,6 +215,28 @@ async def test_contact_feedback(context):
     assert context.db.contacts[0].feedback == '3'
 
 
+######
+#  TAG
+#######
+
+
+QUERY_JSON = '{"callback_query": {"id": "489401150900673103", "from": {"id": 113947584, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "message": {"message_id": 3736, "from": {"id": 5580420387, "is_bot": true, "first_name": "Neludim", "username": "neludim_bot"}, "chat": {"id": 113947584, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1664010458, "text": "@adrien_и: ∅", "entities": [], "reply_markup": {}}, "chat_instance": "4489080918223338352", "data": "<data>"}}'
+
+
+async def test_add_tag(context):
+    context.db.users = [User(user_id=364501282)]
+    await process_update(context, QUERY_JSON.replace('<data>', 'add_tag:364501282:krutan'))
+
+    assert context.db.users[0].tags == ['krutan']
+
+
+async def test_delete_tags(context):
+    context.db.users = [User(user_id=364501282)]
+    await process_update(context, QUERY_JSON.replace('<data>', 'delete_tags:364501282'))
+
+    assert context.db.users[0].tags == []
+
+
 #######
 #   HELP/OTHER
 #######
