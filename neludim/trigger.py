@@ -54,6 +54,7 @@ TASKS = [
     Task(SATURDAY, 17, ops.ask_edit_about),
 
     Task(SUNDAY, 17, ops.ask_contact_feedback),
+    Task(SUNDAY, 17, ops.tag_users),
 ]
 
 
