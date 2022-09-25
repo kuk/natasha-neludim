@@ -27,6 +27,7 @@ from neludim.ops import (
     send_extra_contacts,
     ask_confirm_contact,
     ask_contact_feedback,
+    report_previous_week,
     tag_users,
 )
 
@@ -154,6 +155,10 @@ async def test_ask_contact_feedback(context):
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@d'],
     ])
+
+
+async def test_report_previous_week(context):
+    await report_previous_week(context)
 
 
 async def test_tag_users(context):

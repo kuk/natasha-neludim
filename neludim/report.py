@@ -159,7 +159,7 @@ def format_report_record(record):
     yield record.mention
 
 
-def format_report(records):
+def format_report(records, html):
     def key(record):
         return (
             record.is_krutan,
@@ -176,6 +176,11 @@ def format_report(records):
         yield ' '.join(_.ljust(2) for _ in parts)
 
 
-def report_text(records):
-    lines = format_report(records)
-    return '\n'.join(lines)
+def report_text(records, html=False):
+    lines = format_report(records, html)
+    text = '\n'.join(lines)
+
+    if html:
+        text = f'<pre>{text}</pre>'
+
+    return text

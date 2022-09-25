@@ -41,6 +41,10 @@ from .obj import (
     Contact,
 )
 from .match import gen_matches
+from .report import (
+    gen_report,
+    report_text
+)
 
 
 #######
@@ -379,6 +383,21 @@ async def ask_contact_feedback(context):
         ))
 
     await broadcast(context.bot, messages)
+
+
+async def report_previous_week(context):
+    users = await context.db.read_users()
+    contacts = await context.db.read_contacts()
+    previous_week_index = context.schedule.current_week_index() - 1
+
+    records = gen_report(
+        users, contacts,
+        week_index=previous_week_index
+    )
+    await context.bot.send_message(
+        chat_id=ADMIN_USER_ID,
+        text=report_text(records, html=True)
+    )
 
 
 async def tag_users(context):
