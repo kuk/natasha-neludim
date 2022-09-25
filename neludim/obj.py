@@ -2,6 +2,7 @@
 from datetime import datetime as Datetime
 from dataclasses import (
     dataclass,
+    field,
     fields,
 )
 
@@ -9,8 +10,10 @@ from .const import MAIN_ROUND
 
 
 def obj_annots(obj):
-    for field in fields(obj):
-        yield field.name, field.type
+    return [
+        (_.name, _.type)
+        for _ in fields(obj)
+    ]
 
 
 @dataclass
@@ -33,8 +36,10 @@ class User:
     city: str = None
     links: str = None
     about: str = None
+    updated_profile: Datetime = None
 
-    tags: [str] = None
+    tags: [str] = field(default_factory=list)
+    confirmed_tags: Datetime = None
 
     partner_user_id: int = None
 

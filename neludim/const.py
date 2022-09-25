@@ -83,9 +83,11 @@ SS = 'SS'
 
 KRUTAN_TAG = 'krutan'
 RESEARCH_TAG = 'research'
+LEAD_TAG = 'lead'
 TAGS = [
     KRUTAN_TAG,
     RESEARCH_TAG,
+    LEAD_TAG,
 ]
 
 #####
@@ -141,7 +143,8 @@ CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
 ######
 
 ADD_TAG_PREFIX = 'add_tag'
-DELETE_TAGS_PREFIX = 'delete_tags'
+RESET_TAGS_PREFIX = 'reset_tags'
+CONFIRM_TAGS_PREFIX = 'confirm_tags'
 
 ######
 #  PORT

@@ -230,11 +230,18 @@ async def test_add_tag(context):
     assert context.db.users[0].tags == ['krutan']
 
 
-async def test_delete_tags(context):
+async def test_reset_tags(context):
     context.db.users = [User(user_id=364501282)]
     await process_update(context, QUERY_JSON.replace('<data>', 'delete_tags:364501282'))
 
     assert context.db.users[0].tags == []
+
+
+async def test_confirm_tags(context):
+    context.db.users = [User(user_id=364501282)]
+    await process_update(context, QUERY_JSON.replace('<data>', 'confirm_tags:364501282'))
+
+    assert context.db.users[0].confirmed_tags
 
 
 #######

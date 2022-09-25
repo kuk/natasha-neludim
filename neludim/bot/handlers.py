@@ -28,7 +28,8 @@ from neludim.const import (
     CONTACT_FEEDBACK_COMMAND,
 
     ADD_TAG_PREFIX,
-    DELETE_TAGS_PREFIX,
+    RESET_TAGS_PREFIX,
+    CONFIRM_TAGS_PREFIX,
 
     EDIT_NAME_STATE,
     EDIT_CITY_STATE,
@@ -52,7 +53,8 @@ from neludim.obj import User
 
 from .callback_data import (
     AddTagCallbackData,
-    DeleteTagsCallbackData,
+    ResetTagsCallbackData,
+    ConfirmTagsCallbackData,
 
     deserialize_callback_data,
 )
@@ -414,6 +416,7 @@ async def handle_edit_profile_states(context, message):
         elif state == EDIT_ABOUT_STATE:
             user.about = value
 
+        user.updated_profile = context.schedule.now()
         await context.db.put_user(user)
 
     text = edit_profile_text(user)
@@ -574,7 +577,7 @@ async def handle_contact_feedback_state(context, message):
 #####
 
 
-async def update_tag_message(context, query, user):
+async def update_tag_user_message(context, query, user):
     await context.bot.edit_message_text(
         text=tag_user_text(user),
         chat_id=query.from_user.id,
@@ -588,33 +591,52 @@ async def handle_add_tag(context, query):
 
     user = await context.db.get_user(callback_data.user_id)
 
-    if not user.tags:
-        user.tags = []
-
     if callback_data.tag in user.tags:
-        # Make sure user is updated. "Message is not modified:
+        # Make sure user is updated, otherwise "Message is not modified:
         # specified new message content and reply markup are exactly
         # the same as a current content"
         return
 
     user.tags.append(callback_data.tag)
+    user.confirmed_tags = context.schedule.now()
 
     await context.db.put_user(user)
-    await update_tag_message(context, query, user)
+    await update_tag_user_message(context, query, user)
 
 
-async def handle_delete_tags(context, query):
-    callback_data = deserialize_callback_data(query.data, DeleteTagsCallbackData)
+async def handle_reset_tags(context, query):
+    callback_data = deserialize_callback_data(query.data, ResetTagsCallbackData)
 
     user = await context.db.get_user(callback_data.user_id)
 
-    if user.tags == []:
+    if not user.tags:
         return
 
     user.tags = []
+    user.confirmed_tags = context.schedule.now()
 
     await context.db.put_user(user)
-    await update_tag_message(context, query, user)
+    await update_tag_user_message(context, query, user)
+
+
+async def handle_confirm_tags(context, query):
+    callback_data = deserialize_callback_data(query.data, ConfirmTagsCallbackData)
+
+    user = await context.db.get_user(callback_data.user_id)
+
+    if (
+            user.confirmed_tags
+            and (
+                not user.updated_profile
+                or user.confirmed_tags > user.updated_profile
+            )
+    ):
+        return
+
+    user.confirmed_tags = context.schedule.now()
+
+    await context.db.put_user(user)
+    await update_tag_user_message(context, query, user)
 
 
 ######
@@ -702,9 +724,14 @@ def setup_handlers(context):
         text_startswith=ADD_TAG_PREFIX
     )
     context.dispatcher.register_callback_query_handler(
-        partial(handle_delete_tags, context),
+        partial(handle_reset_tags, context),
         user_id=ADMIN_USER_ID,
-        text_startswith=DELETE_TAGS_PREFIX
+        text_startswith=RESET_TAGS_PREFIX
+    )
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_confirm_tags, context),
+        user_id=ADMIN_USER_ID,
+        text_startswith=CONFIRM_TAGS_PREFIX
     )
 
     # Every call to chat_states filter = db query. Place handlers

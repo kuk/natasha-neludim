@@ -381,25 +381,19 @@ async def ask_contact_feedback(context):
     await broadcast(context.bot, messages)
 
 
-async def tag_participate_users(context):
+async def tag_users(context):
     users = await context.db.read_users()
-    next_week_index = context.schedule.current_week_index() + 1
 
     for user in users:
-        if user.tags is not None:
-            continue
-
-        if user.links is None and user.about is None:
-            continue
-
         if (
-                not user.agreed_participate
-                or week_index(user.agreed_participate) + 1 != next_week_index
+                user.updated_profile
+                and (
+                    not user.confirmed_tags
+                    or user.confirmed_tags < user.updated_profile
+                )
         ):
-            continue
-
-        await context.bot.send_message(
-            chat_id=ADMIN_USER_ID,
-            text=tag_user_text(user),
-            reply_markup=tag_user_markup(user)
-        )
+            await context.bot.send_message(
+                chat_id=ADMIN_USER_ID,
+                text=tag_user_text(user),
+                reply_markup=tag_user_markup(user)
+            )

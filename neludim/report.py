@@ -109,7 +109,7 @@ def gen_report(users, contacts, week_index):
             feedback = None
 
         mention = user_mention(user)
-        is_krutan = KRUTAN_TAG in (user.tags or [])
+        is_krutan = KRUTAN_TAG in user.tags
 
         yield ReportRecord(
             mention=mention,

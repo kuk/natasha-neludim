@@ -6,7 +6,8 @@ from dataclasses import (
 
 from neludim.const import (
     ADD_TAG_PREFIX,
-    DELETE_TAGS_PREFIX,
+    RESET_TAGS_PREFIX,
+    CONFIRM_TAGS_PREFIX,
 )
 
 
@@ -19,8 +20,15 @@ class AddTagCallbackData:
 
 
 @dataclass
-class DeleteTagsCallbackData:
-    prefix = DELETE_TAGS_PREFIX
+class ResetTagsCallbackData:
+    prefix = RESET_TAGS_PREFIX
+
+    user_id: int
+
+
+@dataclass
+class ConfirmTagsCallbackData:
+    prefix = CONFIRM_TAGS_PREFIX
 
     user_id: int
 
