@@ -5,7 +5,7 @@ from collections import (
     Counter
 )
 
-from neludim.obj import Match
+from .obj import Match
 
 
 def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
