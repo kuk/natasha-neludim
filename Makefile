@@ -52,6 +52,20 @@ deploy-trigger:
 		--service-account-id $(SERVICE_ACCOUNT_ID) \
 		--folder-name natasha-neludim
 
+log-follow:
+	yc log read default \
+		--filter 'json_payload.source = "user"' \
+		--follow \
+		--folder-name natasha-neludim
+
+log-1000:
+	yc log read default \
+		--filter 'json_payload.source = "user"' \
+		--limit 1000 \
+		--since 2020-01-01T00:00:00Z \
+		--until 2030-01-01T00:00:00Z \
+		--folder-name natasha-neludim
+
 clean:
 	find . \
 		-name '*.pyc' \
