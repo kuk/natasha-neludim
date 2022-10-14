@@ -6,6 +6,7 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
 )
+from aiogram.utils.exceptions import MessageNotModified
 
 from neludim.const import (
     ADMIN_USER_ID,
@@ -578,11 +579,21 @@ async def handle_contact_feedback_state(context, message):
 
 
 async def update_tag_user_message(context, query, user):
-    await context.bot.edit_message_text(
-        text=tag_user_text(user),
-        chat_id=query.from_user.id,
-        message_id=query.message.message_id,
-        reply_markup=tag_user_markup(user)
+    try:
+        await context.bot.edit_message_text(
+            text=tag_user_text(user),
+            chat_id=query.from_user.id,
+            message_id=query.message.message_id,
+            reply_markup=tag_user_markup(user)
+        )
+    except MessageNotModified:
+        # Add same tag twice for example. Ok if text is not modified
+        pass
+
+    # "Telegram clients will display a progress bar until you call
+    # answerCallbackQuery"
+    await context.bot.answer_callback_query(
+        callback_query_id=query.id
     )
 
 
@@ -590,13 +601,6 @@ async def handle_add_tag(context, query):
     callback_data = deserialize_callback_data(query.data, AddTagCallbackData)
 
     user = await context.db.get_user(callback_data.user_id)
-
-    if callback_data.tag in user.tags:
-        # Make sure user is updated, otherwise "Message is not modified:
-        # specified new message content and reply markup are exactly
-        # the same as a current content"
-        return
-
     user.tags.append(callback_data.tag)
     user.confirmed_tags = context.schedule.now()
 
@@ -608,10 +612,6 @@ async def handle_reset_tags(context, query):
     callback_data = deserialize_callback_data(query.data, ResetTagsCallbackData)
 
     user = await context.db.get_user(callback_data.user_id)
-
-    if not user.tags:
-        return
-
     user.tags = []
     user.confirmed_tags = context.schedule.now()
 
@@ -623,16 +623,6 @@ async def handle_confirm_tags(context, query):
     callback_data = deserialize_callback_data(query.data, ConfirmTagsCallbackData)
 
     user = await context.db.get_user(callback_data.user_id)
-
-    if (
-            user.confirmed_tags
-            and (
-                not user.updated_profile
-                or user.confirmed_tags > user.updated_profile
-            )
-    ):
-        return
-
     user.confirmed_tags = context.schedule.now()
 
     await context.db.put_user(user)
