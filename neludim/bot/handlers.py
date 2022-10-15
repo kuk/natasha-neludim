@@ -25,6 +25,7 @@ from neludim.const import (
     PAUSE_MONTH_COMMAND,
     SHOW_CONTACT_COMMAND,
     CONFIRM_CONTACT_COMMAND,
+    MANUAL_MATCH_COMMAND,
     FAIL_CONTACT_COMMAND,
     CONTACT_FEEDBACK_COMMAND,
 
@@ -50,7 +51,10 @@ from neludim.text import (
     intro_text,
     EMPTY_SYMBOL
 )
-from neludim.obj import User
+from neludim.obj import (
+    User,
+    ManualMatch
+)
 
 from .callback_data import (
     AddTagCallbackData,
@@ -96,9 +100,15 @@ COMMAND_DESCRIPTIONS = {
     FAIL_CONTACT_COMMAND: 'не договорились/не отвечает',
     CONTACT_FEEDBACK_COMMAND: 'как прошла встреча',
 
+    MANUAL_MATCH_COMMAND: 'сметчить вручную',
+
     CANCEL_COMMAND: 'отменить',
     EMPTY_COMMAND: 'оставить пустым',
 }
+
+ADMIN_COMMANDS = [
+    MANUAL_MATCH_COMMAND
+]
 
 
 ######
@@ -299,6 +309,32 @@ def contact_feedback_state_text(user, contact, schedule):
 /{PAUSE_MONTH_COMMAND} - пауза на месяц'''
 
 
+######
+#  MANUAL MATCH
+######
+
+
+BAD_MANUAL_MATCH_COMMAND_TEXT = f'Не смог распарсить. Формат <code>/{MANUAL_MATCH_COMMAND} user_pattern partner_user_pattern reason</code>'
+
+
+def empty_manual_match_select_text(pattern):
+    return f'Не нашёл участника, шаблон - "{pattern}".'
+
+
+def ambig_manual_match_select_lines(pattern, users, cap=3):
+    yield f'Нашёл несколько участников, шаблон - "{pattern}":'
+    for user in users[:cap]:
+        yield f'- {user.username or EMPTY_SYMBOL}, {user.name or EMPTY_SYMBOL}'
+
+
+def manual_match_text(user, partner_user, reason):
+    return f'''Добавил метч.
+
+Участник: {user.username or EMPTY_SYMBOL}, {user.name or EMPTY_SYMBOL}
+Собеседник: {partner_user.username or EMPTY_SYMBOL}, {partner_user.name or EMPTY_SYMBOL}
+Повод: {reason}'''
+
+
 #######
 #
 #   HANDLERS
@@ -322,11 +358,15 @@ async def handle_start(context, message):
         )
         await context.db.put_user(user)
 
-    await context.bot.set_my_commands(commands=[
+    commands = [
         BotCommand(command, description)
-        for command, description
-        in COMMAND_DESCRIPTIONS.items()
-    ])
+        for command, description in COMMAND_DESCRIPTIONS.items()
+        if (
+            command not in ADMIN_COMMANDS
+            or message.from_user.id == ADMIN_USER_ID
+        )
+    ]
+    await context.bot.set_my_commands(commands=commands)
 
     text = start_text(context.schedule)
     await message.answer(text=text)
@@ -629,6 +669,67 @@ async def handle_confirm_tags(context, query):
     await update_tag_user_message(context, query, user)
 
 
+#####
+#  MANUAL MATCH
+######
+
+
+def parse_manual_match_command(command):
+    # /manual_match alexkuk gusev Повидаться
+    # /manual_match th8 gusev Генеративные, RL
+
+    parts = command.split(None, 3)
+    if len(parts) == 4:
+        return parts
+
+
+async def handle_manual_match_select(message, users, pattern):
+    pattern = pattern.lower()
+    users = [
+        _ for _ in users
+        if (
+            _.username and pattern in _.username.lower()
+            or _.name and pattern in _.name.lower()
+        )
+    ]
+
+    if not users:
+        text = empty_manual_match_select_text(pattern)
+        await message.answer(text=text)
+        return
+
+    if len(users) > 1:
+        text = lines_text(ambig_manual_match_select_lines(pattern, users))
+        await message.answer(text=text)
+        return
+
+    return users[0]
+
+
+async def handle_manual_match(context, message):
+    command = parse_manual_match_command(message.text)
+    if not command:
+        await message.answer(text=BAD_MANUAL_MATCH_COMMAND_TEXT)
+        return
+
+    _, user_pattern, user_partner_pattern, reason = command
+
+    users = await context.db.read_users()
+    user = await handle_manual_match_select(message, users, user_pattern)
+    if not user:
+        return
+
+    partner_user = await handle_manual_match_select(message, users, user_partner_pattern)
+    if not partner_user:
+        return
+
+    match = ManualMatch(user.user_id, partner_user.user_id, reason)
+    await context.db.put_manual_match(match)
+
+    text = manual_match_text(user, partner_user, reason)
+    await message.answer(text=text)
+
+
 ######
 #  HELP/OTHER
 ########
@@ -706,6 +807,12 @@ def setup_handlers(context):
     context.dispatcher.register_message_handler(
         partial(handle_help, context),
         commands=HELP_COMMAND,
+    )
+
+    context.dispatcher.register_message_handler(
+        partial(handle_manual_match, context),
+        user_id=ADMIN_USER_ID,
+        commands=MANUAL_MATCH_COMMAND,
     )
 
     context.dispatcher.register_callback_query_handler(

@@ -79,3 +79,10 @@ class Match:
     @property
     def key(self):
         return (self.user_id, self.partner_user_id)
+
+
+@dataclass
+class ManualMatch(Match):
+    user_id: int
+    partner_user_id: int
+    reason: str

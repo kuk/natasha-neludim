@@ -4,6 +4,7 @@ from datetime import timedelta as Timedelta
 from neludim.obj import (
     User,
     Contact,
+    ManualMatch,
 )
 from neludim.const import (
     MONTH_PERIOD,
@@ -242,6 +243,55 @@ async def test_confirm_tags(context):
     await process_update(context, QUERY_JSON.replace('<data>', 'confirm_tags:364501282'))
 
     assert context.db.users[0].confirmed_tags
+
+
+######
+#  MANUAL MATCH
+#####
+
+
+async def test_manual_match_bad_command(context):
+    await process_update(context, START_JSON.replace('/start', '/manual_match alex'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Не смог'],
+    ])
+    
+
+async def test_manual_match_empty_select(context):
+    context.db.users = [User(user_id=364501282, username='kolya')]
+    await process_update(context, START_JSON.replace('/start', '/manual_match alex ilya reason'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Не нашёл участника'],
+    ])
+
+
+async def test_manual_match_ambig_select(context):
+    context.db.users = [
+        User(user_id=364501282, username='alex'),
+        User(user_id=364501283, name='alex')
+    ]
+    await process_update(context, START_JSON.replace('/start', '/manual_match alex bob reason'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Нашёл несколько участников'],
+    ])
+
+
+async def test_manual_match_ok(context):
+    context.db.users = [
+        User(user_id=364501282, username='Alex'),
+        User(user_id=364501283, name='Bob')
+    ]
+    await process_update(context, START_JSON.replace('/start', '/manual_match alex bob reason'))
+
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', 'Добавил метч'],
+    ])
+    assert context.db.manual_matches == [
+        ManualMatch(user_id=364501282, partner_user_id=364501283, reason='reason')
+    ]
 
 
 #######

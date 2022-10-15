@@ -138,6 +138,8 @@ CONFIRM_CONTACT_COMMAND = 'confirm_contact'
 FAIL_CONTACT_COMMAND = 'fail_contact'
 CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
 
+MANUAL_MATCH_COMMAND = 'manual_match'
+
 ######
 #  CALLBACK DATA
 ######
