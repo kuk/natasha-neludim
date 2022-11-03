@@ -198,7 +198,7 @@ async def test_fail_extra_contact(context):
     await process_update(context, START_JSON.replace('/start', '/fail_contact'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Жалко, что встреча не состоялась'],
+        ['sendMessage', 'Пометил, что встреча не состоялась'],
     ])
     assert context.db.contacts[0].state == FAIL_STATE
 

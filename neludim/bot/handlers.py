@@ -55,6 +55,7 @@ from neludim.obj import (
     User,
     ManualMatch
 )
+from neludim.schedule import week_index
 
 from .callback_data import (
     AddTagCallbackData,
@@ -258,30 +259,27 @@ NO_CONTACT_TEXT = 'Бот не назначил тебе собеседника.
 PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
 
 
-def show_contact_text(user, contact):
-    return f'''Контакт собеседника в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
+def show_contact_text(partner_user, contact):
+    return f'''Контакт собеседника в Телеграме: <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>
 
-{intro_text(user)}
-
-/{CONFIRM_CONTACT_COMMAND} - договорились о встрече
-/{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
-/{CONTACT_FEEDBACK_COMMAND} - оставить фидбек'''
+{intro_text(partner_user)}'''
 
 
-CONFIRM_CONTACT_TEXT = f'''Пометил, что вы договорились о встрече. Бот не потревожит рассылкой с напоминанием списаться.
-
-/{CONTACT_FEEDBACK_COMMAND} - оставить фидбек о встрече'''
+CONFIRM_CONTACT_TEXT = 'Пометил, что вы договорились о встрече. Бот не потревожит рассылкой с напоминанием списаться.'
 
 
-def fail_contact_text(schedule):
+def fail_contact_lines(user, schedule):
     if schedule.now() < schedule.current_week_thursday():
-        return f'''Пометил, что не получилось договориться. Бот подберет нового собеседника в четверг {day_month(schedule.current_week_thursday())}.
+        yield f'''Пометил, что не получилось договориться. Бот подберет нового собеседника в четверг {day_month(schedule.current_week_thursday())}.
 
 /{CONFIRM_CONTACT_COMMAND} - всё-таки получилось договориться, не надо подбирать нового'''
 
     else:
-        return f'''Жалко, что встреча не состоялась.
+        yield 'Пометил, что встреча не состоялась.'
 
+        date = user.paused or user.agreed_participate
+        if not date or week_index(date) < schedule.current_week_index():
+            yield '''
 Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
 /{PARTICIPATE_COMMAND} - участвовать
@@ -289,8 +287,8 @@ def fail_contact_text(schedule):
 /{PAUSE_MONTH_COMMAND} - пауза на месяц'''
 
 
-def contact_feedback_text(user):
-    return f'''Напиши фидбек своими словами или оставь оценку от 1 до 5, где 1 - очень плохо, 5 - очень хорошо. Собеседник на этой неделе - <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
+def contact_feedback_text(partner_user):
+    return f'''Напиши фидбек своими словами или оставь оценку от 1 до 5, где 1 - очень плохо, 5 - очень хорошо. Собеседник на этой неделе - <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>.
 
 /{CANCEL_COMMAND} - отменить
 /{EMPTY_COMMAND} - оставить пустым'''
@@ -299,9 +297,12 @@ def contact_feedback_text(user):
 CONTACT_FEEDBACK_OPTIONS = '12345'
 
 
-def contact_feedback_state_text(user, contact, schedule):
-    return f'''Фидбек - "{contact.feedback or EMPTY_SYMBOL}", собеседник - <a href="{user_url(user.user_id)}">{user_mention(user)}</a>.
+def contact_feedback_state_lines(user, partner_user, contact, schedule):
+    yield f'''Фидбек - "{contact.feedback or EMPTY_SYMBOL}", собеседник - <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>.'''
 
+    date = user.paused or user.agreed_participate
+    if not date or week_index(date) < schedule.current_week_index():
+        yield '''
 Участвуешь во встречах на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
 /{PARTICIPATE_COMMAND} - участвовать
@@ -527,6 +528,7 @@ async def handle_contact(context, message):
         await message.answer(text=NO_CONTACT_TEXT)
         return
 
+    contact.user = user
     return contact
 
 
@@ -559,7 +561,7 @@ async def handle_fail_contact(context, message):
     contact.state = FAIL_STATE
     await context.db.put_contact(contact)
 
-    text = fail_contact_text(context.schedule)
+    text = lines_text(fail_contact_lines(contact.user, context.schedule))
     await message.answer(text=text)
 
 
@@ -601,7 +603,10 @@ async def handle_contact_feedback_state(context, message):
         await context.db.put_contact(contact)
 
     partner_user = await context.db.get_user(contact.partner_user_id)
-    text = contact_feedback_state_text(partner_user, contact, context.schedule)
+    text = lines_text(contact_feedback_state_lines(
+        contact.user, partner_user,
+        contact, context.schedule
+    ))
 
     await message.answer(
         text=text,
