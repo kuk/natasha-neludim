@@ -53,8 +53,8 @@ TASKS = [
     Task(SATURDAY, 9, ops.ask_agree_participate),
     Task(SATURDAY, 17, ops.ask_edit_about),
 
-    Task(SUNDAY, 17, ops.ask_contact_feedback),
     Task(SUNDAY, 17, ops.tag_users),
+    Task(SUNDAY, 17, ops.ask_contact_feedback),
 
     Task(MONDAY, 0, ops.report_previous_week),
 ]
