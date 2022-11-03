@@ -279,7 +279,7 @@ def fail_contact_lines(user, schedule):
 
         date = user.paused or user.agreed_participate
         if not date or week_index(date) < schedule.current_week_index():
-            yield '''
+            yield f'''
 Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
 /{PARTICIPATE_COMMAND} - участвовать
@@ -302,7 +302,7 @@ def contact_feedback_state_lines(user, partner_user, contact, schedule):
 
     date = user.paused or user.agreed_participate
     if not date or week_index(date) < schedule.current_week_index():
-        yield '''
+        yield f'''
 Участвуешь во встречах на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
 /{PARTICIPATE_COMMAND} - участвовать
