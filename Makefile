@@ -3,7 +3,7 @@ REGISTRY = cr.yandex/$(REGISTRY_ID)
 REMOTE = $(REGISTRY)/$(IMAGE)
 
 test-lint:
-	pytest -vv --pycodestyle --flakes --ignore neludim/tests neludim
+	flake8 neludim
 
 test-key:
 	pytest -vv -s -k $(KEY) neludim
