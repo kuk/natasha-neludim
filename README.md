@@ -250,8 +250,8 @@ yc serverless trigger delete default \
 Создать окружение, установить зависимости.
 
 ```bash
-pyenv virtualenv 3.9.10 neludim
-pyenv activate neludim
+python -m venv ~/.venvs/natasha-neludim
+source ~/.venvs/natasha-neludim/bin/activate
 
 pip install \
   -r requirements/test.txt \
