@@ -256,7 +256,7 @@ async def test_manual_match_bad_command(context):
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Не смог'],
     ])
-    
+
 
 async def test_manual_match_empty_select(context):
     context.db.users = [User(user_id=364501282, username='kolya')]

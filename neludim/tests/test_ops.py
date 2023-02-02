@@ -8,16 +8,14 @@ from neludim.const import (
     WEEK_PERIOD,
     MONTH_PERIOD,
 
-    MAIN_ROUND,
     EXTRA_ROUND,
 )
 from neludim.obj import (
     User,
     Contact,
-    Match,
 )
 from neludim.schedule import week_index_monday
-    
+
 from neludim.ops import (
     ask_agree_participate,
     ask_edit_about,

@@ -24,7 +24,7 @@ async def test_users(db):
 
     await db.delete_user(user_id=user.user_id)
     assert await db.get_user(user_id=user.user_id) is None
-    
+
 
 async def test_contacts(db):
     contact = Contact(

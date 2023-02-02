@@ -134,7 +134,7 @@ class FakeContext(Context):
 
 def fake_setup(context):
     setup_bot(context)
-    
+
     Bot.set_current(context.bot)
     Dispatcher.set_current(context.dispatcher)
 
