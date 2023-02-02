@@ -8,9 +8,6 @@ test-lint:
 test-key:
 	pytest -vv -s -k $(KEY) neludim
 
-test-cov:
-	pytest -vv --cov-report html --cov neludim neludim
-
 image:
 	docker build -t $(IMAGE) .
 
