@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     name='neludim',
     packages=find_packages(
-        exclude=['notes']
+        include=['neludim']
     ),
     entry_points={
         'console_scripts': [
