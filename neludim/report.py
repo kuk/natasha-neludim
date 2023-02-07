@@ -1,5 +1,8 @@
 
-from dataclasses import dataclass
+from dataclasses import (
+    replace,
+    dataclass
+)
 from collections import defaultdict
 
 from .const import (
@@ -36,24 +39,27 @@ def propogate_contact_states(contacts):
             if user_id > partner_user_id:
                 user_id, partner_user_id = partner_user_id, user_id
             group_contacts[user_id, partner_user_id].append(contact)
+        else:
+            yield contact
 
     for group in group_contacts.values():
         states = {_.state for _ in group if _.state}
-        feedbacks = {_.feedback for _ in group if _.feedback}
+        has_feedback = any(_.feedback for _ in group)
 
-        state = None
-        if feedbacks:
+        if has_feedback:
             state = CONFIRM_STATE
-        else:
+        elif states:
             if CONFIRM_STATE in states and FAIL_STATE in states:
                 state = None
             elif CONFIRM_STATE in states:
                 state = CONFIRM_STATE
             elif FAIL_STATE in states:
                 state = FAIL_STATE
+        else:
+            state = None
 
         for contact in group:
-            contact.state = state
+            yield replace(contact, state=state)
 
 
 def gen_report(users, contacts, week_index):
@@ -70,7 +76,7 @@ def gen_report(users, contacts, week_index):
         elif contact.week_index == week_index + 1:
             next_week_user_ids.update((contact.user_id, contact.partner_user_id))
 
-    propogate_contact_states(week_contacts)
+    week_contacts = list(propogate_contact_states(week_contacts))
 
     user_id_contacts = defaultdict(list)
     for contact in week_contacts:
