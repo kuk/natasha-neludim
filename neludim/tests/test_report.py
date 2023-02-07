@@ -37,4 +37,4 @@ NP - no_partner
 
 KR ·  FT C  ·  @a
 ·  P  FT NP ·  C 
-·  ·  FT C  4  @b'''  # noqan
+·  ·  FT C  4  @b'''  # noqa
