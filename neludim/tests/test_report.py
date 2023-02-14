@@ -3,38 +3,52 @@ from neludim.obj import (
     User,
     Contact
 )
+from neludim.report import (
+    gen_match_report,
+    format_match_report,
+    gen_weeks_report,
+    format_weeks_report,
+    report_text
+)
 from neludim.const import (
     FAIL_STATE,
     CONFIRM_STATE,
-    KRUTAN_TAG,
-)
-from neludim.report import (
-    gen_report,
-    report_text
+    BAD_SCORE,
 )
 
 
-def test_report():
+def test_match_report():
     contacts = [
         Contact(week_index=0, user_id=1, partner_user_id=2, state=FAIL_STATE),
-        Contact(week_index=0, user_id=2, partner_user_id=1, state=CONFIRM_STATE, feedback='4'),
-        Contact(week_index=0, user_id=3, partner_user_id=None, state=FAIL_STATE, feedback='fail!'),
+        Contact(week_index=0, user_id=2, partner_user_id=1, state=CONFIRM_STATE, feedback_score=BAD_SCORE),
+        Contact(week_index=0, user_id=3, partner_user_id=None),
     ]
     users = [
-        User(user_id=1, username='a', tags=[KRUTAN_TAG]),
+        User(user_id=1, username='a'),
         User(user_id=2, username='b'),
-        User(user_id=3, name='C', paused=True),
+        User(user_id=3, name='C'),
     ]
 
-    records = list(gen_report(users, contacts, week_index=0))
-    assert report_text(records) == '''KR - krutan
-P - pause
-FT - first_time
+    records = gen_match_report(contacts, week_index=0)
+    lines = format_match_report(users, records)
+    assert report_text(lines) == '''
+╭ F!    @a
+╰ C  B! @b
+  NP    C
+'''.strip('\n')
 
-C - confirm
-F! - fail
-NP - no_partner
 
-KR ·  FT C  ·  @a
-·  P  FT NP ·  C 
-·  ·  FT C  4  @b'''  # noqa
+def test_weeks_report():
+    contacts = [
+        Contact(week_index=0, user_id=1, partner_user_id=2, state=FAIL_STATE),
+        Contact(week_index=0, user_id=2, partner_user_id=1, state=CONFIRM_STATE, feedback_score=BAD_SCORE),
+        Contact(week_index=1, user_id=1, partner_user_id=None),
+    ]
+
+    records = gen_weeks_report(contacts)
+    lines = format_weeks_report(records)
+    assert report_text(lines) == '''
+ W  T FT  C F!  ∅  G OK B!  ∅
+ 0  2  2  2  0  0  0  0  1  1
+ 1  1  0  0  0  0  0  0  0  0
+'''.strip('\n')

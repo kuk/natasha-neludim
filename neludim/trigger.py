@@ -11,18 +11,18 @@ from .log import (
 )
 from .const import (
     MONDAY,
-    WEDNESDAY,
-    THURSDAY,
     SATURDAY,
     SUNDAY,
 
     WEEKDAYS,
 )
-from . import ops
+from .bot import ops
 
 
 ######
+#
 #  TASKS
+#
 ######
 
 
@@ -42,25 +42,17 @@ class Task:
 
 
 TASKS = [
-    Task(MONDAY, 0, ops.create_main_contacts),
-    Task(MONDAY, 9, ops.send_main_contacts),
+    Task(SUNDAY, 9, ops.ask_participate),
 
-    Task(WEDNESDAY, 9, ops.ask_confirm_contact),
+    Task(MONDAY, 0, ops.create_contacts),
+    Task(MONDAY, 9, ops.send_contacts),
+    Task(SATURDAY, 17, ops.ask_feedback),
 
-    Task(THURSDAY, 0, ops.create_extra_contacts),
-    Task(THURSDAY, 9, ops.send_extra_contacts),
-
-    Task(SATURDAY, 9, ops.ask_agree_participate),
-    Task(SATURDAY, 17, ops.ask_edit_about),
-
-    Task(SUNDAY, 17, ops.tag_users),
-    Task(SUNDAY, 17, ops.ask_contact_feedback),
-
-    Task(MONDAY, 0, ops.report_previous_week),
+    Task(MONDAY, 0, ops.send_reports),
 ]
 
 
-def find_tasks(tasks, datetime):
+def select_tasks(tasks, datetime):
     weekday = WEEKDAYS[datetime.weekday()]
     hour = datetime.hour
 
@@ -70,31 +62,33 @@ def find_tasks(tasks, datetime):
 
 
 #####
+#
 #  APP
+#
 #####
-
-
-def parse_datetime(value):
-    # 2022-08-23T10:31:10.869181208Z -> 2022-08-23T10:31:10
-    # fromisoformat does not support precision
-
-    value = value[:value.index('.')]
-    return Datetime.fromisoformat(value)
 
 
 def parse_trigger(data):
     for item in data['messages']:
-        return parse_datetime(item['event_metadata']['created_at'])
+        datetime = item['event_metadata']['created_at']
+
+        # 2022-08-23T10:31:10.869181208Z -> 2022-08-23T10:31:10
+        # fromisoformat does not support precision
+        datetime = datetime[:datetime.index('.')]
+        return Datetime.fromisoformat(datetime)
 
 
 async def handle_trigger(context, request):
     data = await request.json()
     datetime = parse_trigger(data)
 
-    tasks = find_tasks(TASKS, datetime)
+    tasks = select_tasks(TASKS, datetime)
     for task in tasks:
         log.info(json_msg(task=task.name))
         await task.op(context)
+
+        log.info(json_msg(errors=context.broadcast.errors))
+        context.broadcast.reset()
 
     return web.Response()
 

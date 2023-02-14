@@ -2,11 +2,8 @@
 from datetime import datetime as Datetime
 from dataclasses import (
     dataclass,
-    field,
     fields,
 )
-
-from .const import MAIN_ROUND
 
 
 def obj_annots(obj):
@@ -28,19 +25,13 @@ class User:
     username: str = None
     created: Datetime = None
 
-    agreed_participate: Datetime = None
-    paused: Datetime = None
-    pause_period: str = None
-
     name: str = None
     city: str = None
     links: str = None
     about: str = None
     updated_profile: Datetime = None
 
-    tags: [str] = field(default_factory=list)
-    confirmed_tags: Datetime = None
-
+    agreed_participate: Datetime = None
     partner_user_id: int = None
 
 
@@ -48,13 +39,11 @@ class User:
 class Contact:
     week_index: int
     user_id: int
-
-    # no partner for this week: odd participants
     partner_user_id: int = None
 
-    round: str = MAIN_ROUND
     state: str = None
-    feedback: str = None
+    feedback_score: int = None
+    feedback_text: str = None
 
     @property
     def key(self):
@@ -79,10 +68,3 @@ class Match:
     @property
     def key(self):
         return (self.user_id, self.partner_user_id)
-
-
-@dataclass
-class ManualMatch(Match):
-    user_id: int
-    partner_user_id: int
-    reason: str

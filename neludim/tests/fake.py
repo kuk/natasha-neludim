@@ -11,6 +11,7 @@ from neludim.bot.bot import (
     Dispatcher,
     setup_bot,
 )
+from neludim.bot.broadcast import Broadcast
 from neludim.schedule import (
     Schedule,
     START_DATE,
@@ -24,7 +25,7 @@ class FakeBot(Bot):
         Bot.__init__(self, '123:faketoken')
         self.trace = []
 
-    async def request(self, method, data):
+    async def request(self, method, data, files=None):
         json = format_json(data, ensure_ascii=False)
         self.trace.append([method, json])
         return {}
@@ -128,6 +129,7 @@ class FakeContext(Context):
         Context.__init__(self)
         self.bot = FakeBot()
         self.dispatcher = Dispatcher(self.bot)
+        self.broadcast = Broadcast(self.bot)
         self.db = FakeDB()
         self.schedule = FakeSchedule()
 

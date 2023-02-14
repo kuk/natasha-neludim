@@ -1,6 +1,8 @@
 
 #######
+#
 #  DATETIME
+#
 #####
 
 
@@ -25,7 +27,9 @@ def day_month(datetime):
 
 
 ########
+#
 #  USER
+#
 ######
 
 
@@ -44,7 +48,7 @@ def user_url(user_id):
 EMPTY_SYMBOL = '∅'
 
 
-def intro_text(user):
+def profile_text(user):
     return f'''Имя: {user.name or EMPTY_SYMBOL}
 Город: {user.city or EMPTY_SYMBOL}
 Ссылки: {user.links or EMPTY_SYMBOL}

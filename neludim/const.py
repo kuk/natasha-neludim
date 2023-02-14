@@ -1,6 +1,14 @@
 
 import logging
-from os import getenv
+from os import (
+    getenv,
+    environ
+)
+
+from .env import (
+    find_dotenv,
+    load_dotenv
+)
 
 
 #######
@@ -8,6 +16,9 @@ from os import getenv
 ######
 
 # Ask @alexkuk for .env
+path = find_dotenv()
+if path:
+    environ.update(load_dotenv(path))
 
 BOT_TOKEN = getenv('BOT_TOKEN')
 
@@ -24,26 +35,12 @@ ADMIN_USER_ID = int(getenv('ADMIN_USER_ID'))
 
 LOG_LEVEL = getenv('LOG_LEVEL', logging.INFO)
 
-#####
-#  STATE
+#######
+#  CONTACT STATE
 ######
-
-EDIT_NAME_STATE = 'edit_name'
-EDIT_CITY_STATE = 'edit_city'
-EDIT_LINKS_STATE = 'edit_links'
-EDIT_ABOUT_STATE = 'edit_about'
-
-CONTACT_FEEDBACK_STATE = 'contact_feedback'
 
 CONFIRM_STATE = 'confirm'
 FAIL_STATE = 'fail'
-
-######
-#  PERIOD
-#####
-
-WEEK_PERIOD = 'week'
-MONTH_PERIOD = 'month'
 
 #####
 #  SCHEDULE
@@ -78,26 +75,6 @@ M = 'M'
 SS = 'SS'
 
 ######
-#  TAGS
-#######
-
-KRUTAN_TAG = 'krutan'
-RESEARCH_TAG = 'research'
-LEAD_TAG = 'lead'
-TAGS = [
-    KRUTAN_TAG,
-    RESEARCH_TAG,
-    LEAD_TAG,
-]
-
-#####
-#  ROUND
-######
-
-MAIN_ROUND = 'main'
-EXTRA_ROUND = 'extra'
-
-######
 #  DB
 #####
 
@@ -120,33 +97,40 @@ MANUAL_MATCHES_KEY = 'key'
 START_COMMAND = 'start'
 HELP_COMMAND = 'help'
 
-EDIT_PROFILE_COMMAND = 'edit_profile'
-EDIT_NAME_COMMAND = 'edit_name'
-EDIT_CITY_COMMAND = 'edit_city'
-EDIT_LINKS_COMMAND = 'edit_links'
-EDIT_ABOUT_COMMAND = 'edit_about'
-
-CANCEL_COMMAND = 'cancel'
-EMPTY_COMMAND = 'empty'
-
-PARTICIPATE_COMMAND = 'participate'
-PAUSE_WEEK_COMMAND = 'pause_week'
-PAUSE_MONTH_COMMAND = 'pause_month'
-
-SHOW_CONTACT_COMMAND = 'show_contact'
-CONFIRM_CONTACT_COMMAND = 'confirm_contact'
-FAIL_CONTACT_COMMAND = 'fail_contact'
-CONTACT_FEEDBACK_COMMAND = 'contact_feedback'
-
-MANUAL_MATCH_COMMAND = 'manual_match'
-
 ######
-#  CALLBACK DATA
+#  DATA
 ######
 
-ADD_TAG_PREFIX = 'add_tag'
-RESET_TAGS_PREFIX = 'reset_tags'
-CONFIRM_TAGS_PREFIX = 'confirm_tags'
+EDIT_PROFILE_PREFIX = 'edit_profile'
+PARTICIPATE_PREFIX = 'participate'
+FEEDBACK_PREFIX = 'feedback'
+
+CANCEL_EDIT_DATA = 'cancel_edit'
+CANCEL_FEEDBACK_DATA = 'cancel_feedback'
+
+####
+#  PROFILE FIELD
+####
+
+NAME_FIELD = 'name'
+CITY_FIELD = 'city'
+LINKS_FIELD = 'links'
+ABOUT_FIELD = 'about'
+
+#####
+#  STATE
+#####
+
+CONFIRM_STATE = 'confirm'
+FAIL_STATE = 'fail'
+
+#####
+#  SCORE
+###
+
+GREAT_SCORE = 'great'
+OK_SCORE = 'ok'
+BAD_SCORE = 'bad'
 
 ######
 #  PORT

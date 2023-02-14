@@ -34,8 +34,6 @@ def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
 
     def key(user):
         has_manual_match = user.user_id in manual_matches_index
-        tags_count = len(user.tags)
-
         has_about = (
             user.links is not None
             or user.about is not None
@@ -47,7 +45,6 @@ def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
 
         return (
             has_manual_match,
-            tags_count,
             has_about,
             city_weight,
 
@@ -75,7 +72,6 @@ def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
 
             def key(partner_user, user=user):
                 is_manual_match = partner_user.user_id in manual_matches_index[user.user_id]
-                tags_intersection = len(set(user.tags) & set(partner_user.tags))
 
                 same_city = False
                 if user.city and partner_user.city:
@@ -83,7 +79,6 @@ def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
 
                 return (
                     is_manual_match,
-                    tags_intersection,
                     same_city
                 )
 

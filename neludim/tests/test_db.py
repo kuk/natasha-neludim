@@ -2,7 +2,7 @@
 from neludim.obj import (
     User,
     Contact,
-    ManualMatch
+    Match
 )
 
 
@@ -15,7 +15,6 @@ async def test_users(db):
     user = User(
         user_id=1,
         name='abc',
-        tags=['a', 'b']
     )
 
     await db.put_user(user)
@@ -42,10 +41,9 @@ async def test_contacts(db):
 
 
 async def test_manual_matches(db):
-    match = ManualMatch(
+    match = Match(
         user_id=1,
         partner_user_id=2,
-        reason='12'
     )
 
     await db.put_manual_match(match)

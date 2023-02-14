@@ -36,7 +36,9 @@ async def dynamo_client():
 
 
 ######
+#
 #  OPS
+#
 #####
 
 
@@ -132,7 +134,9 @@ async def dynamo_batch_delete(client, table, key_name, key_type, key_values):
 
 
 ######
+#
 #   DE/SERIALIZE
+#
 ####
 
 

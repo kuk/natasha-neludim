@@ -1,351 +1,80 @@
 
+import random
 from functools import partial
 
 from aiogram.types import (
     BotCommand,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
 )
-from aiogram.utils.exceptions import MessageNotModified
 
 from neludim.const import (
-    ADMIN_USER_ID,
-
     START_COMMAND,
     HELP_COMMAND,
-    EDIT_PROFILE_COMMAND,
-    EDIT_NAME_COMMAND,
-    EDIT_CITY_COMMAND,
-    EDIT_LINKS_COMMAND,
-    EDIT_ABOUT_COMMAND,
-    CANCEL_COMMAND,
-    EMPTY_COMMAND,
-    PARTICIPATE_COMMAND,
-    PAUSE_WEEK_COMMAND,
-    PAUSE_MONTH_COMMAND,
-    SHOW_CONTACT_COMMAND,
-    CONFIRM_CONTACT_COMMAND,
-    MANUAL_MATCH_COMMAND,
-    FAIL_CONTACT_COMMAND,
-    CONTACT_FEEDBACK_COMMAND,
 
-    ADD_TAG_PREFIX,
-    RESET_TAGS_PREFIX,
-    CONFIRM_TAGS_PREFIX,
+    NAME_FIELD,
+    CITY_FIELD,
+    LINKS_FIELD,
+    ABOUT_FIELD,
 
-    EDIT_NAME_STATE,
-    EDIT_CITY_STATE,
-    EDIT_LINKS_STATE,
-    EDIT_ABOUT_STATE,
-    CONTACT_FEEDBACK_STATE,
-    CONFIRM_STATE,
+    EDIT_PROFILE_PREFIX,
+    PARTICIPATE_PREFIX,
+    FEEDBACK_PREFIX,
+
+    CANCEL_EDIT_DATA,
+    CANCEL_FEEDBACK_DATA,
+
     FAIL_STATE,
+    CONFIRM_STATE,
 
-    WEEK_PERIOD,
-    MONTH_PERIOD,
+    BAD_SCORE,
 )
 from neludim.text import (
     day_month,
-    user_url,
-    user_mention,
-    intro_text,
-    EMPTY_SYMBOL
+    profile_text,
 )
-from neludim.obj import (
-    User,
-    ManualMatch
-)
-from neludim.schedule import week_index
+from neludim.obj import User
 
-from .callback_data import (
-    AddTagCallbackData,
-    ResetTagsCallbackData,
-    ConfirmTagsCallbackData,
-
-    deserialize_callback_data,
-)
-from .tag_user import (
-    tag_user_text,
-    tag_user_markup
+from .data import (
+    serialize_data,
+    deserialize_data,
+    EditProfileData,
+    ParticipateData,
+    FeedbackData,
 )
 
 
-######
-#
-#  TEXT
-#
-########
-
-
-########
-#   COMMAND
-#######
-
-
-COMMAND_DESCRIPTIONS = {
-    START_COMMAND: 'с чего начать',
-    HELP_COMMAND: 'справка',
-
-    EDIT_PROFILE_COMMAND: 'настроить профиль',
-    EDIT_NAME_COMMAND: 'изменить имя',
-    EDIT_CITY_COMMAND: 'изменить город',
-    EDIT_LINKS_COMMAND: 'изменить ссылки',
-    EDIT_ABOUT_COMMAND: 'изменить "о себе"',
-
-    PARTICIPATE_COMMAND: 'участвовать во встречах',
-    PAUSE_WEEK_COMMAND: 'пауза на неделю',
-    PAUSE_MONTH_COMMAND: 'пауза на месяц',
-
-    SHOW_CONTACT_COMMAND: 'контакт, анкета собеседника',
-    CONFIRM_CONTACT_COMMAND: 'договорились о встрече',
-    FAIL_CONTACT_COMMAND: 'не договорились/не отвечает',
-    CONTACT_FEEDBACK_COMMAND: 'как прошла встреча',
-
-    MANUAL_MATCH_COMMAND: 'сметчить вручную',
-
-    CANCEL_COMMAND: 'отменить',
-    EMPTY_COMMAND: 'оставить пустым',
-}
-
-ADMIN_COMMANDS = [
-    MANUAL_MATCH_COMMAND
-]
-
-
-######
-#  START
-######
-
-
-def start_text(schedule):
-    return f'''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
-
-С чего начать?
-- Дай согласия на участие во встречах /{PARTICIPATE_COMMAND}. В понедельник {day_month(schedule.next_week_monday())} бот подберёт собеседника, пришлёт анкету и контакт.
-- Заполни короткую анкету /{EDIT_PROFILE_COMMAND}. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
-
-/{EDIT_PROFILE_COMMAND} - заполнить анкету
-/{PARTICIPATE_COMMAND} - участвовать во встречах
-/{HELP_COMMAND} - как работает бот, как договориться о встрече, список команд'''
-
-
-######
-#   HELP
-######
-
-
-HELP_TEXT = f'''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
-
-<b>Как это работает?</>
-- Участник чата @natural_language_processing запускает бота, заполняет анкету. Админ чата @alexkuk читает анкеты, объединяет людей в пары.
-- Раз в неделю бот присылает каждому участнику контакт собеседника и его анкету. Люди договариваются о времени, созваниваются или встречаются вживую.
-- В конце недели бот спрашивает "Как прошла встреча? Будешь участвовать на следующей неделе?".
-
-<b>Расписание</>
-- Понедельник - бот присылает контакт и анкету собеседника
-- Среда - спрашивает "получилось договориться о встрече?"
-- Четверг - присылает новый контакт и анкету тем кто ответ "нет" в среду
-- Суббота - спрашивает "участвуешь на следующей неделе?"
-- Воскресенье - спрашивает "как прошла встреча?"
-
-<b>Как договориться о встрече</b>
-Собеседник согласился участвовать во встречах, получил анкету. Твоя задача договориться про время и место. Примеры первых сообщений:
-- Привет, бот Нелюдим дал твой контакт. Когда удобно встретиться/созвониться на этой неделе? Могу в будни после 17.
-- Хай, я от Нелюдима ) Ты в Сбере на Кутузовской? Можно там. Когда удобно? Могу в среду, четверг после 18.
-
-По статистике 15-30% участников не могут договориться о встрече. Если собеседник не отвечает, отказывается или переносит, нажми /{FAIL_CONTACT_COMMAND}, в четверг бот пришлёт контакт нового собеседника.
-
-<b>Команды</b>
-/{START_COMMAND} - с чего начать
-/{HELP_COMMAND} - справка
-
-/{EDIT_PROFILE_COMMAND} - настроить профиль
-/{EDIT_NAME_COMMAND} - изменить имя
-/{EDIT_CITY_COMMAND} - изменить город
-/{EDIT_LINKS_COMMAND} - изменить ссылки
-/{EDIT_ABOUT_COMMAND} - изменить "о себе"
-
-/{PARTICIPATE_COMMAND} - участвовать во встречах
-/{PAUSE_WEEK_COMMAND} - пауза на неделю
-/{PAUSE_MONTH_COMMAND} - пауза на месяц
-
-/{SHOW_CONTACT_COMMAND} - контакт, анкета собеседника
-/{CONFIRM_CONTACT_COMMAND} - договорились о встрече
-/{FAIL_CONTACT_COMMAND} - не договорились/не отвечает
-/{CONTACT_FEEDBACK_COMMAND} - как прошла встреча'''
-
-
-######
-#  PROFILE
-######
-
-
-def edit_profile_text(user):
-    return f'''{intro_text(user)}
-
-/{EDIT_NAME_COMMAND} - изменить имя
-/{EDIT_CITY_COMMAND} - изменить город
-/{EDIT_LINKS_COMMAND} - изменить ссылки
-/{EDIT_ABOUT_COMMAND} - изменить "о себе"
-'''
-
-
-EDIT_NAME_TEXT = f'''Напиши своё настоящее имя. Собеседник поймёт, как к тебе обращаться.
-
-/{CANCEL_COMMAND} - отменить
-/{EMPTY_COMMAND} - оставить пустым'''
-
-EDIT_CITY_TEXT = f'''Напиши город, в котором живёшь. Или выбери из топа популярных. Собеседник поймет предлагать офлайн встречу или нет.
-
-/{CANCEL_COMMAND} - отменить
-/{EMPTY_COMMAND} - оставить пустым'''
-
-EDIT_LINKS_TEXT = f'''Накидай ссылок про себя: блог, твиттер, фейсбук, канал, подкаст. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
-
-Примеры
-- http://lab.alexkuk.ru, https://github.com/kuk, https://habr.com/ru/users/alexanderkuk/
-- https://www.linkedin.com/in/alexkuk/, https://vk.com/alexkuk
-- http://val.maly.hk
-
-/{CANCEL_COMMAND} - отменить
-/{EMPTY_COMMAND} - оставить пустым'''
-
-EDIT_ABOUT_TEXT = f'''Напиши о себе. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
-
-Что писать?
-- Где учился?
-- Где успел поработать? Чем занимался, самое важное/удивительное?
-- Сфера интересов в NLP? Проекты, статьи.
-- Личное, чем занимаешься кроме работы? Спорт, игры. Где успел пожить?
-
-Пример
-"Закончил ШАД, работал в Яндексе в поиске. Сделал библиотеку Nile, чтобы удобно ворочать логи на Мап Редьюсе https://habr.com/ru/company/yandex/blog/332688/.
-
-Автор проекта Наташа https://github.com/natasha. Работаю в своей Лабе https://lab.alexkuk.ru, адаптирую Наташу под задачи клиентов.
-
-Живу в Москве в Крылатском. У нас тут мекка велоспорта. Умею сидеть на колесе и сдавать смену. Вожу экскурсии. Могу рассказать про путь от академизма к супрематизму."
-
-/{CANCEL_COMMAND} - отменить
-/{EMPTY_COMMAND} - оставить пустым'''
-
-TOP_CITIES = [
-    'Москва',
-    'Санкт-Петербург',
-    'Екатеринбург',
-    'Амстердам',
-    'Мюнхен',
-    'Париж',
+HAPPY_STICKERS = [
+    'CAACAgIAAxkBAAEc-ftj5K0MSHy7DPqF0uwv094UGWIK4wACNgMAArrAlQVz6Uv6cxEhGy4E',
+    'CAACAgIAAxkBAAEc-gNj5K05K92CtVm6cpya4bDyxyAPpQACTAMAArrAlQXYuwQVcvp2EC4E',
+    'CAACAgIAAxkBAAEc-gVj5K1L5Tq9GPoglOSXul6mg9PrAAMmAwACtXHaBj4ZC4vnHBlALgQ',
+    'CAACAgIAAxkBAAEc-gdj5K1ZgjZA9V6eI_GZLsyACpclgAACKQMAArVx2gbdMZInm97EAS4E',
+    'CAACAgIAAxkBAAEc-gtj5K2Prjm4r9LhVJrGnnSFhGDt5QACPgMAArrAlQXle8BoEhO0GC4E',
 ]
 
 
 #####
-#  CONTACT
-#####
-
-
-def lines_text(lines):
-    return '\n'.join(lines)
-
-
-def participate_lines(user, schedule):
-    yield f'Пометил, что участвуешь во встречах. В понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
-
-    if not user.links and not user.about:
-        yield f'''
-Заполни, пожалуйста, ссылки /{EDIT_LINKS_COMMAND} или "о себе" /{EDIT_ABOUT_COMMAND}. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
-
-
-NO_CONTACT_TEXT = 'Бот не назначил тебе собеседника.'
-PAUSE_TEXT = 'Поставил встречи на паузу. Бот не будет присылать контакты собеседников и напоминания.'
-
-
-def show_contact_text(partner_user, contact):
-    return f'''Контакт собеседника в Телеграме: <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>
-
-{intro_text(partner_user)}'''
-
-
-CONFIRM_CONTACT_TEXT = 'Пометил, что вы договорились о встрече. Бот не потревожит рассылкой с напоминанием списаться.'
-
-
-def fail_contact_lines(user, schedule):
-    if schedule.now() < schedule.current_week_thursday():
-        yield f'''Пометил, что не получилось договориться. Бот подберет нового собеседника в четверг {day_month(schedule.current_week_thursday())}.
-
-/{CONFIRM_CONTACT_COMMAND} - всё-таки получилось договориться, не надо подбирать нового'''
-
-    else:
-        yield 'Пометил, что встреча не состоялась.'
-
-        date = user.paused or user.agreed_participate
-        if not date or week_index(date) < schedule.current_week_index():
-            yield f'''
-Участвуешь на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
-
-/{PARTICIPATE_COMMAND} - участвовать
-/{PAUSE_WEEK_COMMAND} - пауза на неделю
-/{PAUSE_MONTH_COMMAND} - пауза на месяц'''
-
-
-def contact_feedback_text(partner_user):
-    return f'''Напиши фидбек своими словами или оставь оценку от 1 до 5, где 1 - очень плохо, 5 - очень хорошо. Собеседник на этой неделе - <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>.
-
-/{CANCEL_COMMAND} - отменить
-/{EMPTY_COMMAND} - оставить пустым'''
-
-
-CONTACT_FEEDBACK_OPTIONS = '12345'
-
-
-def contact_feedback_state_lines(user, partner_user, contact, schedule):
-    yield f'''Фидбек - "{contact.feedback or EMPTY_SYMBOL}", собеседник - <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>.'''
-
-    date = user.paused or user.agreed_participate
-    if not date or week_index(date) < schedule.current_week_index():
-        yield f'''
-Участвуешь во встречах на следующей неделе? Если дашь согласие, в понедельник {day_month(schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
-
-/{PARTICIPATE_COMMAND} - участвовать
-/{PAUSE_WEEK_COMMAND} - пауза на неделю
-/{PAUSE_MONTH_COMMAND} - пауза на месяц'''
-
-
-######
-#  MANUAL MATCH
-######
-
-
-BAD_MANUAL_MATCH_COMMAND_TEXT = f'Не смог распарсить. Формат <code>/{MANUAL_MATCH_COMMAND} user_pattern partner_user_pattern reason</code>'
-
-
-def empty_manual_match_select_text(pattern):
-    return f'Не нашёл участника, шаблон - "{pattern}".'
-
-
-def ambig_manual_match_select_lines(pattern, users, cap=3):
-    yield f'Нашёл несколько участников, шаблон - "{pattern}":'
-    for user in users[:cap]:
-        yield f'- {user.username or EMPTY_SYMBOL}, {user.name or EMPTY_SYMBOL}'
-
-
-def manual_match_text(user, partner_user, reason):
-    return f'''Добавил метч.
-
-Участник: {user.username or EMPTY_SYMBOL}, {user.name or EMPTY_SYMBOL}
-Собеседник: {partner_user.username or EMPTY_SYMBOL}, {partner_user.name or EMPTY_SYMBOL}
-Повод: {reason}'''
-
-
-#######
 #
-#   HANDLERS
-#
-######
-
-
-######
 #  START
+#
 ######
+
+
+START_TEXT = '''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
+
+Пожалуйста, заполни короткую анкету. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
+
+START_MARKUP = InlineKeyboardMarkup().add(
+    InlineKeyboardButton(
+        text='Заполнить анкету',
+        callback_data=EDIT_PROFILE_PREFIX
+    )
+)
+
+BOT_COMMANDS = [
+    BotCommand(START_COMMAND, 'запуск'),
+    BotCommand(HELP_COMMAND, 'справка'),
+]
 
 
 async def handle_start(context, message):
@@ -359,112 +88,186 @@ async def handle_start(context, message):
         )
         await context.db.put_user(user)
 
-    commands = [
-        BotCommand(command, description)
-        for command, description in COMMAND_DESCRIPTIONS.items()
-        if (
-            command not in ADMIN_COMMANDS
-            or message.from_user.id == ADMIN_USER_ID
-        )
-    ]
-    await context.bot.set_my_commands(commands=commands)
-
-    text = start_text(context.schedule)
-    await message.answer(text=text)
+    await context.bot.set_my_commands(commands=BOT_COMMANDS)
+    await message.answer(
+        text=START_TEXT,
+        reply_markup=START_MARKUP
+    )
 
 
 #####
-#  PROFILE
+#
+#  EDIT PROFILE
+#
 ######
 
 
-async def handle_edit_profile(context, message):
-    user = await context.db.get_user(message.from_user.id)
-    text = edit_profile_text(user)
-    await message.answer(text=text)
+EDIT_PROFILE_MARKUP = InlineKeyboardMarkup(row_width=2).add(
+    InlineKeyboardButton(
+        text='Изм. имя',
+        callback_data=serialize_data(EditProfileData(NAME_FIELD))
+    ),
+    InlineKeyboardButton(
+        text='Изм. город',
+        callback_data=serialize_data(EditProfileData(CITY_FIELD))
+    ),
+    InlineKeyboardButton(
+        text='Изм. ссылки',
+        callback_data=serialize_data(EditProfileData(LINKS_FIELD))
+    ),
+    InlineKeyboardButton(
+        text='Изм. о себе',
+        callback_data=serialize_data(EditProfileData(ABOUT_FIELD))
+    ),
+)
 
 
-async def handle_edit_name(context, message):
-    user = await context.db.get_user(message.from_user.id)
+async def handle_edit_profile(context, query):
+    user = await context.db.get_user(query.from_user.id)
+    await query.message.answer(
+        text=profile_text(user),
+        reply_markup=EDIT_PROFILE_MARKUP
+    )
 
-    markup = None
-    if not user.name and message.from_user.full_name:
-        markup = ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(message.from_user.full_name)
 
-    await message.answer(
+######
+#
+#   EDIT NAME
+#
+######
+
+
+EDIT_NAME_TEXT = 'Напиши своё настоящее имя. Собеседник поймёт, как к тебе обращаться.'
+
+CANCEL_EDIT_MARKUP = InlineKeyboardMarkup().add(
+    InlineKeyboardButton(
+        text='Отменить',
+        callback_data=CANCEL_EDIT_DATA
+    )
+)
+
+
+async def handle_edit_name(context, query):
+    await query.message.answer(
         text=EDIT_NAME_TEXT,
-        reply_markup=markup
+        reply_markup=CANCEL_EDIT_MARKUP
     )
     await context.db.set_chat_state(
-        message.chat.id,
-        EDIT_NAME_STATE
+        query.message.chat.id,
+        state=serialize_data(EditProfileData(NAME_FIELD))
     )
 
 
-async def handle_edit_city(context, message):
-    markup = ReplyKeyboardMarkup(resize_keyboard=True)
-    for city in TOP_CITIES:
-        markup.insert(city)
+######
+#
+#  EDIT CITY
+#
+######
 
-    await message.answer(
+
+EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Собеседник поймет предлагать офлайн встречу или нет.
+
+Популярные среди участников города: Москва, Санкт-Петербург, Екатеринбург, Тбилиси, Ереван, Стамбул, Амстердам, Мюнхен, Париж.'''
+
+
+async def handle_edit_city(context, query):
+    await query.message.answer(
         text=EDIT_CITY_TEXT,
-        reply_markup=markup
+        reply_markup=CANCEL_EDIT_MARKUP
     )
     await context.db.set_chat_state(
-        message.chat.id,
-        EDIT_CITY_STATE
+        query.message.chat.id,
+        serialize_data(EditProfileData(CITY_FIELD))
     )
 
 
-async def handle_edit_links(context, message):
-    await message.answer(text=EDIT_LINKS_TEXT)
+#######
+#
+#  EDIT LINKS
+#
+####
+
+
+EDIT_LINKS_TEXT = '''Накидай ссылок про себя: блог, твиттер, фейсбук, канал, подкаст. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+
+Примеры:
+- http://lab.alexkuk.ru, https://github.com/kuk, https://habr.com/ru/users/alexanderkuk/
+- https://www.linkedin.com/in/alexkuk/, https://vk.com/alexkuk
+- http://val.maly.hk'''
+
+
+async def handle_edit_links(context, query):
+    await query.message.answer(
+        text=EDIT_LINKS_TEXT,
+        reply_markup=CANCEL_EDIT_MARKUP
+    )
     await context.db.set_chat_state(
-        message.chat.id,
-        EDIT_LINKS_STATE
+        query.message.chat.id,
+        serialize_data(EditProfileData(LINKS_FIELD))
     )
 
 
-async def handle_edit_about(context, message):
-    await message.answer(text=EDIT_ABOUT_TEXT)
+######
+#
+#  EDIT ABOUT
+#
+######
+
+
+EDIT_ABOUT_TEXT = '''Напиши о себе. Собеседник поймёт чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.
+
+Что писать?
+- Где учился?
+- Где успел поработать? Чем занимался, самое важное/удивительное?
+- Сфера интересов в NLP? Проекты, статьи.
+- Личное, чем занимаешься кроме работы? Спорт, игры. Где успел пожить?
+
+Пример
+"Закончил ШАД, работал в Яндексе в поиске. Сделал библиотеку Nile, чтобы удобно ворочать логи на Мап Редьюсе https://habr.com/ru/company/yandex/blog/332688/.
+
+Автор проекта Наташа https://github.com/natasha. Работаю в своей Лабе https://lab.alexkuk.ru, адаптирую Наташу под задачи клиентов.
+
+Живу в Москве в Крылатском. У нас тут мекка велоспорта. Умею сидеть на колесе и сдавать смену. Вожу экскурсии. Могу рассказать про путь от академизма к супрематизму."'''
+
+
+async def handle_edit_about(context, query):
+    await query.message.answer(
+        text=EDIT_ABOUT_TEXT,
+        reply_markup=CANCEL_EDIT_MARKUP
+    )
     await context.db.set_chat_state(
-        message.chat.id,
-        EDIT_ABOUT_STATE
+        query.message.chat.id,
+        serialize_data(EditProfileData(ABOUT_FIELD))
     )
 
 
-def parse_command(text):
-    if text.startswith('/'):
-        return text.lstrip('/')
+########
+#
+#   EDIT INPUT
+#
+#####
 
 
-async def handle_edit_profile_states(context, message):
-    state = await context.db.get_chat_state(message.chat.id)
+async def handle_edit_input(context, message):
     user = await context.db.get_user(message.from_user.id)
+    data = await context.db.get_chat_state(message.chat.id)
+    data = deserialize_data(data, EditProfileData)
 
-    command = parse_command(message.text)
-    if command != CANCEL_COMMAND:
-        if command != EMPTY_COMMAND:
-            value = message.text
-        else:
-            value = None
+    if data.field == NAME_FIELD:
+        user.name = message.text
+    elif data.field == CITY_FIELD:
+        user.city = message.text
+    elif data.field == LINKS_FIELD:
+        user.links = message.text
+    elif data.field == ABOUT_FIELD:
+        user.about = message.text
 
-        if state == EDIT_NAME_STATE:
-            user.name = value
-        elif state == EDIT_CITY_STATE:
-            user.city = value
-        elif state == EDIT_LINKS_STATE:
-            user.links = value
-        elif state == EDIT_ABOUT_STATE:
-            user.about = value
+    user.updated_profile = context.schedule.now()
+    await context.db.put_user(user)
 
-        user.updated_profile = context.schedule.now()
-        await context.db.put_user(user)
-
-    text = edit_profile_text(user)
     await message.answer(
-        text=text,
-        reply_markup=ReplyKeyboardRemove()
+        text=profile_text(user),
+        reply_markup=EDIT_PROFILE_MARKUP
     )
     await context.db.set_chat_state(
         message.chat.id,
@@ -472,272 +275,189 @@ async def handle_edit_profile_states(context, message):
     )
 
 
+########
+#
+#   CANCEL EDIT
+#
+###
+
+
+async def handle_cancel_edit(context, query):
+    await query.message.delete()
+    await context.db.set_chat_state(
+        query.message.chat.id,
+        state=None
+    )
+
+
 ######
-#  PARTICIPATE/PAUSE
+#
+#   PARTICIPATE
+#
 #######
 
 
-async def handle_participate(context, message):
-    user = await context.db.get_user(message.from_user.id)
+LATE_PARTICIPATE_TEXT = 'Не дождался твоего ответа. Бот пришлёт новое приглашение в конце недели.'
+NO_PARTICIPATE_TEXT = 'Пометил, что не участвуешь во встречах. Бот пришлёт новое приглашение через неделю.'
 
+
+def participate_text(context):
+    return f'Пометил, что участвуешь во встречах. В понедельник {day_month(context.schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
+
+
+async def handle_participate(context, query):
+    data = deserialize_data(query.data, ParticipateData)
+    current_week_index = context.schedule.current_week_index()
+
+    if not data.agreed:
+        await query.message.answer(text=NO_PARTICIPATE_TEXT)
+        return
+
+    if data.week_index != current_week_index:
+        await query.message.answer(text=LATE_PARTICIPATE_TEXT)
+        return
+
+    user = await context.db.get_user(query.from_user.id)
     user.agreed_participate = context.schedule.now()
-    user.paused = None
-    user.pause_period = None
-
     await context.db.put_user(user)
 
-    text = lines_text(participate_lines(user, context.schedule))
-    await message.answer(text=text)
-
-
-async def handle_pause(context, message):
-    user = await context.db.get_user(message.from_user.id)
-
-    user.agreed_participate = None
-    user.paused = context.schedule.now()
-
-    command = parse_command(message.text)
-    if command == PAUSE_WEEK_COMMAND:
-        user.pause_period = WEEK_PERIOD
-    elif command == PAUSE_MONTH_COMMAND:
-        user.pause_period = MONTH_PERIOD
-
-    await context.db.put_user(user)
-    await message.answer(text=PAUSE_TEXT)
+    await query.message.answer(
+        text=participate_text(context)
+    )
+    await query.message.reply_sticker(
+        sticker=random.choice(HAPPY_STICKERS)
+    )
 
 
 ######
-#  CONTACT
-#########
+#
+#   FEEDBACK
+#
+#####
 
 
-async def handle_contact(context, message):
-    user = await context.db.get_user(message.from_user.id)
+FEEDBACK_TEXT = '''Была ли встреча полезна для тебя? Напиши, пожалуйста, отзыв в свободной форме.
 
-    if not user.partner_user_id:
-        await message.answer(text=NO_CONTACT_TEXT)
-        return
+Примеры:
+- Хотела узнать как работают в Сбердевайсах. Собеседник провёл экскурсию по офису и показал работу изнутри в nlp_rnd_core.
+- Познакомился с ребятами из X5, Сбера. Обучались в МФТИ, ВШЭ. С одним из них стал участвовать в хаках, 2 раза заняли первое место.
+- Собеседник рассказал про работу в Sber AI, MTS AI и Tinkoff AI, теперь я знаю куда не стоит идти )) Узнал инсайдерскую инфу про кредитный скоринг, жалко не успел выведать про структурированный NER.'''
+
+BAD_FEEDACK_TEXT = '''Напиши, пожалуйста, что не понравилось.
+
+Примеры:
+- Неинтересные мне темы: компьютерные игры/биткоин
+- Собеседник задержался, через 20 минут сказал что ему пора
+- Болтливый собеседник, не дает сказать, не слышит что говорю
+- Вечно жалуется, я после встречи выжат как лимон
+- Бессодрежательно, просто поболтали ни о чем'''
+
+
+FAIL_FEEDBACK_TEXT = '''Напиши, пожалуйста, почему встреча не состоялась.
+
+Примеры:
+- Перенесли на следующую неделю
+- Договорились, собеседник перед созвоном отменил
+- Написал, собеседник не ответил/перестал отвечать
+- Анкета выглядит неинтересно, не стал писать
+- Не было времени, не списались
+- Отключил уведомления, пропустил сообщение от бота'''
+
+
+CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
+    InlineKeyboardButton(
+        text='Не буду писать',
+        callback_data=CANCEL_FEEDBACK_DATA
+    )
+)
+
+
+async def handle_feedback(context, query):
+    data = deserialize_data(query.data, FeedbackData)
 
     key = (
-        context.schedule.current_week_index(),
-        user.user_id,
-        user.partner_user_id
+        data.week_index,
+        query.from_user.id,
+        data.partner_user_id
     )
     contact = await context.db.get_contact(key)
-    if not contact:
-        await message.answer(text=NO_CONTACT_TEXT)
-        return
-
-    contact.user = user
-    return contact
-
-
-async def handle_show_contact(context, message):
-    contact = await handle_contact(context, message)
-    if not contact:
-        return
-
-    partner_user = await context.db.get_user(contact.partner_user_id)
-    text = show_contact_text(partner_user, contact)
-    await message.answer(text=text)
-
-
-async def handle_confirm_contact(context, message):
-    contact = await handle_contact(context, message)
-    if not contact:
-        return
-
-    contact.state = CONFIRM_STATE
+    contact.state = data.state
+    if contact.state == CONFIRM_STATE:
+        contact.feedback_score = data.feedback_score
     await context.db.put_contact(contact)
 
-    await message.answer(text=CONFIRM_CONTACT_TEXT)
+    if contact.state == FAIL_STATE:
+        text = FAIL_FEEDBACK_TEXT
+    elif contact.feedback_score == BAD_SCORE:
+        text = BAD_FEEDACK_TEXT
+    else:
+        text = FEEDBACK_TEXT
 
-
-async def handle_fail_contact(context, message):
-    contact = await handle_contact(context, message)
-    if not contact:
-        return
-
-    contact.state = FAIL_STATE
-    await context.db.put_contact(contact)
-
-    text = lines_text(fail_contact_lines(contact.user, context.schedule))
-    await message.answer(text=text)
-
-
-async def handle_contact_feedback(context, message):
-    contact = await handle_contact(context, message)
-    if not contact:
-        return
-
-    markup = ReplyKeyboardMarkup(
-        resize_keyboard=True,
-        row_width=len(CONTACT_FEEDBACK_OPTIONS)
-    )
-    for option in CONTACT_FEEDBACK_OPTIONS:
-        markup.insert(option)
-
-    partner_user = await context.db.get_user(contact.partner_user_id)
-    text = contact_feedback_text(partner_user)
-    await message.answer(
+    await query.message.answer(
         text=text,
-        reply_markup=markup
+        reply_markup=CANCEL_FEEDBACK_MARKUP
     )
     await context.db.set_chat_state(
-        message.chat.id,
-        CONTACT_FEEDBACK_STATE
+        query.message.chat.id,
+        serialize_data(FeedbackData(
+            data.week_index,
+            data.partner_user_id
+        ))
     )
 
 
-async def handle_contact_feedback_state(context, message):
-    contact = await handle_contact(context, message)
-    if not contact:
-        return
-
-    command = parse_command(message.text)
-    if command != CANCEL_COMMAND:
-        if command != EMPTY_COMMAND:
-            contact.feedback = message.text
-        else:
-            contact.feedback = None
-        await context.db.put_contact(contact)
-
-    partner_user = await context.db.get_user(contact.partner_user_id)
-    text = lines_text(contact_feedback_state_lines(
-        contact.user, partner_user,
-        contact, context.schedule
-    ))
-
-    await message.answer(
-        text=text,
-        reply_markup=ReplyKeyboardRemove()
-    )
+async def handle_cancel_feedback(context, query):
     await context.db.set_chat_state(
-        message.chat.id,
+        query.message.chat.id,
         state=None
     )
 
 
-#####
-#  TAG
-#####
+async def handle_feedback_input(context, message):
+    data = await context.db.get_chat_state(message.chat.id)
+    data = deserialize_data(data, FeedbackData)
 
+    key = (
+        data.week_index,
+        message.from_user.id,
+        data.partner_user_id
+    )
+    contact = await context.db.get_contact(key)
+    contact.feedback_text = message.text
+    await context.db.put_contact(contact)
 
-async def update_tag_user_message(context, query, user):
-    try:
-        await context.bot.edit_message_text(
-            text=tag_user_text(user),
-            chat_id=query.from_user.id,
-            message_id=query.message.message_id,
-            reply_markup=tag_user_markup(user)
-        )
-    except MessageNotModified:
-        # Add same tag twice for example. Ok if text is not modified
-        pass
-
-    # "Telegram clients will display a progress bar until you call
-    # answerCallbackQuery"
-    await context.bot.answer_callback_query(
-        callback_query_id=query.id
+    await message.reply_sticker(
+        sticker=random.choice(HAPPY_STICKERS)
     )
 
 
-async def handle_add_tag(context, query):
-    callback_data = deserialize_callback_data(query.data, AddTagCallbackData)
-
-    user = await context.db.get_user(callback_data.user_id)
-    user.tags.append(callback_data.tag)
-    user.confirmed_tags = context.schedule.now()
-
-    await context.db.put_user(user)
-    await update_tag_user_message(context, query, user)
-
-
-async def handle_reset_tags(context, query):
-    callback_data = deserialize_callback_data(query.data, ResetTagsCallbackData)
-
-    user = await context.db.get_user(callback_data.user_id)
-    user.tags = []
-    user.confirmed_tags = context.schedule.now()
-
-    await context.db.put_user(user)
-    await update_tag_user_message(context, query, user)
-
-
-async def handle_confirm_tags(context, query):
-    callback_data = deserialize_callback_data(query.data, ConfirmTagsCallbackData)
-
-    user = await context.db.get_user(callback_data.user_id)
-    user.confirmed_tags = context.schedule.now()
-
-    await context.db.put_user(user)
-    await update_tag_user_message(context, query, user)
-
-
-#####
-#  MANUAL MATCH
 ######
-
-
-def parse_manual_match_command(command):
-    # /manual_match alexkuk gusev Повидаться
-    # /manual_match th8 gusev Генеративные, RL
-
-    parts = command.split(None, 3)
-    if len(parts) == 4:
-        return parts
-
-
-async def handle_manual_match_select(message, users, pattern):
-    pattern = pattern.lower()
-    users = [
-        _ for _ in users
-        if (
-            _.username and pattern in _.username.lower()
-            or _.name and pattern in _.name.lower()
-        )
-    ]
-
-    if not users:
-        text = empty_manual_match_select_text(pattern)
-        await message.answer(text=text)
-        return
-
-    if len(users) > 1:
-        text = lines_text(ambig_manual_match_select_lines(pattern, users))
-        await message.answer(text=text)
-        return
-
-    return users[0]
-
-
-async def handle_manual_match(context, message):
-    command = parse_manual_match_command(message.text)
-    if not command:
-        await message.answer(text=BAD_MANUAL_MATCH_COMMAND_TEXT)
-        return
-
-    _, user_pattern, user_partner_pattern, reason = command
-
-    users = await context.db.read_users()
-    user = await handle_manual_match_select(message, users, user_pattern)
-    if not user:
-        return
-
-    partner_user = await handle_manual_match_select(message, users, user_partner_pattern)
-    if not partner_user:
-        return
-
-    match = ManualMatch(user.user_id, partner_user.user_id, reason)
-    await context.db.put_manual_match(match)
-
-    text = manual_match_text(user, partner_user, reason)
-    await message.answer(text=text)
-
-
-######
+#
 #  HELP/OTHER
+#
 ########
+
+
+HELP_TEXT = '''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
+
+<b>Как это работает?</>
+- Участник чата @natural_language_processing запускает бота, заполняет анкету. Админ чата @alexkuk читает анкеты. Алгоритм объединяет людей в пары.
+- Раз в неделю бот присылает каждому участнику контакт собеседника и его анкету. Люди договариваются о времени, созваниваются или встречаются вживую.
+- В конце недели бот спрашивает "Как прошла встреча?", "Будешь участвовать на следующей неделе?".
+
+<b>Расписание</>
+- Понедельник - бот присылает контакт и анкету собеседника
+- Среда - спрашивает "Получилось договориться о встрече?"
+- Суббота - спрашивает "Как прошла встреча?"
+- Воскресенье - спрашивает "Участвуешь на следующей неделе?"
+
+<b>Как договориться о встрече</b>
+Собеседник уже согласился участвовать во встречах и получил твою анкету. Задача участников договориться про время и место. Примеры первых сообщений:
+- Привет, бот Нелюдим дал твой контакт. Когда удобно встретиться/созвониться на этой неделе? Могу в будни после 17.
+- Хай, я от Нелюдима ) Ты в Сбере на Кутузовской? Можно там. Когда удобно? Могу в среду, четверг после 18.
+
+<b>Не получилось договориться</b>
+Иногда собеседник не отвечает, отказывается или переносит. По статистике 30% участников не могут договориться о встрече. С среду бот спросит "Получилось договориться о встрече?", нажми "Нет", в четверг бот пришлёт контакт нового собеседника.'''
 
 
 async def handle_help(context, message):
@@ -749,7 +469,9 @@ async def handle_other(context, message):
 
 
 #######
+#
 #   SETUP
+#
 ######
 
 
@@ -759,54 +481,43 @@ def setup_handlers(context):
         commands=START_COMMAND,
     )
 
-    context.dispatcher.register_message_handler(
+    context.dispatcher.register_callback_query_handler(
         partial(handle_edit_profile, context),
-        commands=EDIT_PROFILE_COMMAND
+        text=serialize_data(EditProfileData())
     )
-    context.dispatcher.register_message_handler(
+    context.dispatcher.register_callback_query_handler(
         partial(handle_edit_name, context),
-        commands=EDIT_NAME_COMMAND,
+        text=serialize_data(EditProfileData(NAME_FIELD))
     )
-    context.dispatcher.register_message_handler(
+    context.dispatcher.register_callback_query_handler(
         partial(handle_edit_city, context),
-        commands=EDIT_CITY_COMMAND,
+        text=serialize_data(EditProfileData(CITY_FIELD))
     )
-    context.dispatcher.register_message_handler(
+    context.dispatcher.register_callback_query_handler(
         partial(handle_edit_links, context),
-        commands=EDIT_LINKS_COMMAND,
+        text=serialize_data(EditProfileData(LINKS_FIELD))
     )
-    context.dispatcher.register_message_handler(
+    context.dispatcher.register_callback_query_handler(
         partial(handle_edit_about, context),
-        commands=EDIT_ABOUT_COMMAND,
+        text=serialize_data(EditProfileData(ABOUT_FIELD))
+    )
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_cancel_edit, context),
+        text=CANCEL_EDIT_DATA,
     )
 
-    context.dispatcher.register_message_handler(
+    context.dispatcher.register_callback_query_handler(
         partial(handle_participate, context),
-        commands=PARTICIPATE_COMMAND
-    )
-    context.dispatcher.register_message_handler(
-        partial(handle_pause, context),
-        commands=[
-            PAUSE_WEEK_COMMAND,
-            PAUSE_MONTH_COMMAND,
-        ]
+        text_startswith=PARTICIPATE_PREFIX
     )
 
-    context.dispatcher.register_message_handler(
-        partial(handle_show_contact, context),
-        commands=SHOW_CONTACT_COMMAND,
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_feedback, context),
+        text_startswith=FEEDBACK_PREFIX
     )
-    context.dispatcher.register_message_handler(
-        partial(handle_confirm_contact, context),
-        commands=CONFIRM_CONTACT_COMMAND,
-    )
-    context.dispatcher.register_message_handler(
-        partial(handle_fail_contact, context),
-        commands=FAIL_CONTACT_COMMAND,
-    )
-    context.dispatcher.register_message_handler(
-        partial(handle_contact_feedback, context),
-        commands=CONTACT_FEEDBACK_COMMAND,
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_cancel_feedback, context),
+        text=CANCEL_FEEDBACK_DATA
     )
 
     context.dispatcher.register_message_handler(
@@ -814,44 +525,17 @@ def setup_handlers(context):
         commands=HELP_COMMAND,
     )
 
-    context.dispatcher.register_message_handler(
-        partial(handle_manual_match, context),
-        user_id=ADMIN_USER_ID,
-        commands=MANUAL_MATCH_COMMAND,
-    )
-
-    context.dispatcher.register_callback_query_handler(
-        partial(handle_add_tag, context),
-        user_id=ADMIN_USER_ID,
-        text_startswith=ADD_TAG_PREFIX
-    )
-    context.dispatcher.register_callback_query_handler(
-        partial(handle_reset_tags, context),
-        user_id=ADMIN_USER_ID,
-        text_startswith=RESET_TAGS_PREFIX
-    )
-    context.dispatcher.register_callback_query_handler(
-        partial(handle_confirm_tags, context),
-        user_id=ADMIN_USER_ID,
-        text_startswith=CONFIRM_TAGS_PREFIX
-    )
-
     # Every call to chat_states filter = db query. Place handlers
     # last. TODO Implement aiogram storage adapter for DynamoDB,
     # natively handle FSM
 
     context.dispatcher.register_message_handler(
-        partial(handle_edit_profile_states, context),
-        chat_states=[
-            EDIT_NAME_STATE,
-            EDIT_CITY_STATE,
-            EDIT_LINKS_STATE,
-            EDIT_ABOUT_STATE,
-        ]
+        partial(handle_edit_input, context),
+        chat_state_startswith=EDIT_PROFILE_PREFIX
     )
     context.dispatcher.register_message_handler(
-        partial(handle_contact_feedback_state, context),
-        chat_states=CONTACT_FEEDBACK_STATE,
+        partial(handle_feedback_input, context),
+        chat_state_startswith=FEEDBACK_PREFIX
     )
 
     context.dispatcher.register_message_handler(

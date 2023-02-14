@@ -1,6 +1,13 @@
 
+from os.path import exists
 
-def load_dotenv(path):
+
+def find_dotenv():
+    if exists('.env'):
+        return '.env'
+
+
+def load_dotenv(path='.env'):
     with open(path) as file:
         for line in file:
             line = line.rstrip()
