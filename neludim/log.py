@@ -2,11 +2,9 @@
 import logging
 import json
 
-from .const import LOG_LEVEL
-
 
 log = logging.getLogger(__name__)
-log.setLevel(LOG_LEVEL)
+log.setLevel(logging.INFO)
 log.addHandler(logging.StreamHandler())
 
 

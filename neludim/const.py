@@ -29,12 +29,6 @@ DYNAMO_ENDPOINT = getenv('DYNAMO_ENDPOINT')
 
 ADMIN_USER_ID = int(getenv('ADMIN_USER_ID'))
 
-#####
-#  LOG
-#####
-
-LOG_LEVEL = getenv('LOG_LEVEL', logging.INFO)
-
 #######
 #  CONTACT STATE
 ######
