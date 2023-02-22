@@ -14,14 +14,15 @@ class Broadcast:
 
     async def send_message(self, chat_id, text, reply_markup=None):
         # https://github.com/aiogram/aiogram/blob/dev-2.x/examples/broadcast_example.py
-        # Skip BotBlocked exceptions
         try:
             await self.bot.send_message(
                 chat_id=chat_id,
                 text=text,
                 reply_markup=reply_markup
             )
+
         except exceptions.TelegramAPIError as error:
+            # Common case: BotBlocked exceptions
             self.errors[chat_id] = error.__class__.__name__
 
         # https://habr.com/ru/post/543676/
