@@ -203,7 +203,7 @@ def ask_feedback_markup(context, partner_user):
     partner_user_id = partner_user.user_id
     return InlineKeyboardMarkup(row_width=1).add(
         InlineKeyboardButton(
-            text='Хорошо!',
+            text='👍 Хорошо',
             callback_data=serialize_data(FeedbackData(
                 current_week_index, partner_user_id,
                 state=CONFIRM_STATE,
@@ -211,7 +211,7 @@ def ask_feedback_markup(context, partner_user):
             ))
         ),
         InlineKeyboardButton(
-            text='Средне',
+            text='👌 Средне',
             callback_data=serialize_data(FeedbackData(
                 current_week_index, partner_user_id,
                 state=CONFIRM_STATE,
@@ -219,7 +219,7 @@ def ask_feedback_markup(context, partner_user):
             ))
         ),
         InlineKeyboardButton(
-            text='Плохо',
+            text='👎 Плохо',
             callback_data=serialize_data(FeedbackData(
                 current_week_index, partner_user_id,
                 state=CONFIRM_STATE,
@@ -227,7 +227,7 @@ def ask_feedback_markup(context, partner_user):
             ))
         ),
         InlineKeyboardButton(
-            text='Встреча не состоялась',
+            text='✗ Встреча не состоялась',
             callback_data=serialize_data(FeedbackData(
                 current_week_index, partner_user_id,
                 state=FAIL_STATE,
