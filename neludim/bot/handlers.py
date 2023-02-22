@@ -316,26 +316,28 @@ async def handle_participate(context, query):
     data = deserialize_data(query.data, ParticipateData)
     current_week_index = context.schedule.current_week_index()
 
+    await query.answer()
+    user = await context.db.get_user(query.from_user.id)
+
     if not data.agreed:
-        await query.answer()
+        user.agreed_participate = None
+        await context.db.put_user(user)
+
         await query.message.answer(text=NO_PARTICIPATE_TEXT)
         return
 
-    if data.week_index != current_week_index:
-        await query.answer()
+    if data.week_index != current_week_index + 1:
         await query.message.answer(text=LATE_PARTICIPATE_TEXT)
         return
 
-    user = await context.db.get_user(query.from_user.id)
     user.agreed_participate = context.schedule.now()
     await context.db.put_user(user)
 
-    await query.answer()
-    await query.message.answer(
-        text=participate_text(context)
-    )
     await query.message.reply_sticker(
         sticker=random.choice(HAPPY_STICKERS)
+    )
+    await query.message.answer(
+        text=participate_text(context)
     )
 
 
@@ -426,8 +428,8 @@ async def handle_cancel_feedback(context, query):
 
 
 async def handle_feedback_input(context, message):
-    data = await context.db.get_chat_state(message.chat.id)
-    data = deserialize_data(data, FeedbackData)
+    state = await context.db.get_chat_state(message.chat.id)
+    data = deserialize_data(state, FeedbackData)
 
     key = (
         data.week_index,

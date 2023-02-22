@@ -125,12 +125,12 @@ async def test_cancel_edit(context):
 
 async def test_participate(context):
     context.db.users = [User(user_id=1)]
-    await process_update(context, query_json('participate:0:1'))
+    await process_update(context, query_json('participate:1:1'))
 
     assert match_trace(context.bot.trace, [
         ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
-        ['sendMessage', 'Пометил, что участвуешь'],
         ['sendSticker', '{"chat_id": 1'],
+        ['sendMessage', 'Пометил, что участвуешь'],
     ])
 
     user = context.db.users[0]
@@ -152,7 +152,7 @@ async def test_no_participate(context):
 
 async def test_late_participate(context):
     context.db.users = [User(user_id=1)]
-    await process_update(context, query_json('participate:1:1'))
+    await process_update(context, query_json('participate:0:1'))
 
     assert match_trace(context.bot.trace, [
         ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
