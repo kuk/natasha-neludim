@@ -11,6 +11,7 @@ from aiogram.types import (
 from neludim.const import (
     START_COMMAND,
     HELP_COMMAND,
+    V1_COMMANDS,
 
     NAME_FIELD,
     CITY_FIELD,
