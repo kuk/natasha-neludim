@@ -105,19 +105,19 @@ async def handle_start(context, message):
 
 EDIT_PROFILE_MARKUP = InlineKeyboardMarkup(row_width=2).add(
     InlineKeyboardButton(
-        text='Изм. имя',
+        text='Имя',
         callback_data=serialize_data(EditProfileData(NAME_FIELD))
     ),
     InlineKeyboardButton(
-        text='Изм. город',
+        text='Город',
         callback_data=serialize_data(EditProfileData(CITY_FIELD))
     ),
     InlineKeyboardButton(
-        text='Изм. ссылки',
+        text='Ссылки',
         callback_data=serialize_data(EditProfileData(LINKS_FIELD))
     ),
     InlineKeyboardButton(
-        text='Изм. о себе',
+        text='О себе',
         callback_data=serialize_data(EditProfileData(ABOUT_FIELD))
     ),
 )
@@ -168,10 +168,7 @@ async def handle_edit_name(context, query):
 
 EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. Собеседник поймет предлагать офлайн встречу или нет.
 
-Примеры:
-Москва, Санкт-Петербург, Екатеринбург,
-Тбилиси, Ереван, Стамбул,
-Амстердам, Мюнхен, Париж'''
+Примеры: Москва, Санкт-Петербург, Екатеринбург, Казань, Тбилиси, Ереван, Стамбул, Амстердам, Мюнхен, Париж.'''
 
 
 async def handle_edit_city(context, query):
