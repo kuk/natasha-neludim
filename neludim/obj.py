@@ -42,7 +42,7 @@ class Contact:
     partner_user_id: int = None
 
     state: str = None
-    feedback_score: int = None
+    feedback_score: str = None
     feedback_text: str = None
 
     @property
