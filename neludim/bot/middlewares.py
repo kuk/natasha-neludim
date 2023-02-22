@@ -31,7 +31,7 @@ class LoggingMiddleware(BaseMiddleware):
     async def on_pre_process_callback_query(self, query, data):
         log.info(json_msg(
             user_id=query.from_user.id,
-            text=query.data
+            data=query.data
         ))
 
 
