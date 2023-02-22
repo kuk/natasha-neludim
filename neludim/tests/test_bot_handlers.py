@@ -15,7 +15,7 @@ def message_json(text):
 
 
 def query_json(data):
-    return '{"callback_query": {"id": "489401150900673103", "from": {"id": 1, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "message": {"message_id": 1, "from": {"id": 2, "is_bot": true, "first_name": "Neludim", "username": "neludim_bot"}, "chat": {"id": 1, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1664010458, "text": "", "entities": [], "reply_markup": {}}, "chat_instance": "4489080918223338352", "data": "%s"}}' % data
+    return '{"callback_query": {"id": "1", "from": {"id": 1, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "message": {"message_id": 1, "from": {"id": 2, "is_bot": true, "first_name": "Neludim", "username": "neludim_bot"}, "chat": {"id": 1, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1664010458, "text": "", "entities": [], "reply_markup": {}}, "chat_instance": "1", "data": "%s"}}' % data
 
 
 ######
@@ -50,6 +50,7 @@ async def test_edit_profile(context):
     await process_update(context, query_json('edit_profile:'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendMessage', '{"chat_id": 1, "text": "Имя:'],
     ])
 
@@ -60,6 +61,7 @@ async def test_edit_name(context):
     await process_update(context, message_json('Alexander Kukushkin'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', '{"chat_id": 1, "text": "Напиши своё настоящее имя'],
         ['sendMessage', '{"chat_id": 1, "text": "Имя: Alexander Kukushkin'],
     ])
@@ -72,6 +74,7 @@ async def test_edit_city(context):
     await process_update(context, message_json('Moscow'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', '{"chat_id": 1, "text": "Напиши город'],
         ['sendMessage', 'Город: Moscow'],
     ])
@@ -84,6 +87,7 @@ async def test_edit_links(context):
     await process_update(context, message_json('vk.com/alexkuk'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', '{"chat_id": 1, "text": "Накидай ссылок'],
         ['sendMessage', 'Ссылки: vk.com/alexkuk'],
     ])
@@ -96,6 +100,7 @@ async def test_edit_about(context):
     await process_update(context, message_json('Закончил ШАД, работал в Яндексе'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', '{"chat_id": 1, "text": "Напиши о себе'],
         ['sendMessage', 'Закончил ШАД, работал в Яндексе'],
     ])
@@ -106,6 +111,7 @@ async def test_cancel_edit(context):
     await process_update(context, query_json('cancel_edit'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['deleteMessage', '{"chat_id": 1, "message_id": 1}']
     ])
 
@@ -122,6 +128,7 @@ async def test_participate(context):
     await process_update(context, query_json('participate:0:1'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', 'Пометил, что участвуешь'],
         ['sendSticker', '{"chat_id": 1'],
     ])
@@ -135,6 +142,7 @@ async def test_no_participate(context):
     await process_update(context, query_json('participate:1:0'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', 'Пометил, что не участвуешь'],
     ])
 
@@ -147,6 +155,7 @@ async def test_late_participate(context):
     await process_update(context, query_json('participate:1:1'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', 'Не дождался твоего ответа'],
     ])
 
@@ -168,6 +177,7 @@ async def test_feedback(context):
     await process_update(context, message_json('Все круто'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', 'Дай, пожалуйста, фидбек'],
         ['sendSticker', '{"chat_id": 1'],
     ])
@@ -180,6 +190,7 @@ async def test_bad_feedback(context):
     await process_update(context, query_json('feedback:0:2:confirm:bad'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', 'Напиши, пожалуйста, что не понравилось'],
     ])
 
@@ -190,6 +201,7 @@ async def test_fail_feedback(context):
     await process_update(context, query_json('feedback:0:2:fail:'))
 
     assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendMessage', 'Напиши, пожалуйста, почему встреча не состоялась'],
     ])
 
@@ -197,7 +209,9 @@ async def test_fail_feedback(context):
 async def test_cancel_feedback(context):
     await process_update(context, query_json('cancel_feedback'))
 
-    assert match_trace(context.bot.trace, [])
+    assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+    ])
 
 
 #######
@@ -227,5 +241,5 @@ async def test_other(context):
 async def test_v1_commands(context):
     await process_update(context, message_json('/show_contact'))
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'старые команды не работают']
+        ['sendMessage', 'обновил интерфейс бота']
     ])

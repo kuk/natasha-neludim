@@ -124,6 +124,7 @@ EDIT_PROFILE_MARKUP = InlineKeyboardMarkup(row_width=2).add(
 
 
 async def handle_edit_profile(context, query):
+    await query.answer()
     user = await context.db.get_user(query.from_user.id)
     await query.message.answer(
         text=profile_text(user),
@@ -149,6 +150,7 @@ CANCEL_EDIT_MARKUP = InlineKeyboardMarkup().add(
 
 
 async def handle_edit_name(context, query):
+    await query.answer()
     await query.message.answer(
         text=EDIT_NAME_TEXT,
         reply_markup=CANCEL_EDIT_MARKUP
@@ -172,6 +174,7 @@ EDIT_CITY_TEXT = '''Напиши город, в котором живёшь. С�
 
 
 async def handle_edit_city(context, query):
+    await query.answer()
     await query.message.answer(
         text=EDIT_CITY_TEXT,
         reply_markup=CANCEL_EDIT_MARKUP
@@ -198,6 +201,7 @@ EDIT_LINKS_TEXT = '''Накидай ссылок про себя: блог, тв
 
 
 async def handle_edit_links(context, query):
+    await query.answer()
     await query.message.answer(
         text=EDIT_LINKS_TEXT,
         reply_markup=CANCEL_EDIT_MARKUP
@@ -232,6 +236,7 @@ EDIT_ABOUT_TEXT = '''Напиши о себе. Собеседник поймёт
 
 
 async def handle_edit_about(context, query):
+    await query.answer()
     await query.message.answer(
         text=EDIT_ABOUT_TEXT,
         reply_markup=CANCEL_EDIT_MARKUP
@@ -284,6 +289,7 @@ async def handle_edit_input(context, message):
 
 
 async def handle_cancel_edit(context, query):
+    await query.answer()
     await query.message.delete()
     await context.db.set_chat_state(
         query.message.chat.id,
@@ -311,10 +317,12 @@ async def handle_participate(context, query):
     current_week_index = context.schedule.current_week_index()
 
     if not data.agreed:
+        await query.answer()
         await query.message.answer(text=NO_PARTICIPATE_TEXT)
         return
 
     if data.week_index != current_week_index:
+        await query.answer()
         await query.message.answer(text=LATE_PARTICIPATE_TEXT)
         return
 
@@ -322,6 +330,7 @@ async def handle_participate(context, query):
     user.agreed_participate = context.schedule.now()
     await context.db.put_user(user)
 
+    await query.answer()
     await query.message.answer(
         text=participate_text(context)
     )
@@ -392,6 +401,7 @@ async def handle_feedback(context, query):
     else:
         text = FEEDBACK_TEXT
 
+    await query.answer()
     await query.message.answer(
         text=text,
         reply_markup=CANCEL_FEEDBACK_MARKUP
@@ -406,6 +416,7 @@ async def handle_feedback(context, query):
 
 
 async def handle_cancel_feedback(context, query):
+    await query.answer()
     await context.db.set_chat_state(
         query.message.chat.id,
         state=None
