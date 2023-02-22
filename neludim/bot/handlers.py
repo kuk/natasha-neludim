@@ -68,7 +68,7 @@ START_TEXT = '''Бот Нелюдим @neludim_bot организует random c
 START_MARKUP = InlineKeyboardMarkup().add(
     InlineKeyboardButton(
         text='✎ Заполнить анкету',
-        callback_data=EDIT_PROFILE_PREFIX
+        callback_data=serialize_data(EditProfileData())
     )
 )
 
@@ -477,9 +477,9 @@ async def handle_other(context, message):
 ####
 
 
-V1_COMMANDS_TEXT = f'''Обновил интерфейс бота, старые команды не работают.
+V1_COMMANDS_TEXT = f'''20 февраля 2023 обновил интерфейс бота.
 
-Чтобы изменить профиль, нажми /{START_COMMAND}. Чтобы участвовать во встречах, поставить встречи на паузу, показать контакт, оставить фидбек команды больше не нужны. Бот сам в нужный момент пришлет нужное сообщение, подскажет куда нажимать.'''
+Чтобы изменить профиль, нажми /{START_COMMAND}. В остальных случаях бот сам в нужный момент пришлет нужное сообщение, подскажет куда нажимать.'''
 
 
 async def handle_v1_commands(context, message):
