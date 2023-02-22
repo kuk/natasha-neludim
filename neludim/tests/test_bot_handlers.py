@@ -168,7 +168,7 @@ async def test_feedback(context):
     await process_update(context, message_json('Все круто'))
 
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'Напиши, пожалуйста, отзыв'],
+        ['sendMessage', 'Дай, пожалуйста, фидбек'],
         ['sendSticker', '{"chat_id": 1'],
     ])
     assert context.db.contacts[0].feedback_text == 'Все круто'

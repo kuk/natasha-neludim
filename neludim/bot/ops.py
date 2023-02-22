@@ -53,18 +53,18 @@ def ask_participate_text(context):
     date = context.schedule.next_week_monday()
     return f'''Участвуешь во встречах на следующей неделе? Если дашь согласие, в понедельник {day_month(date)} бот пришлёт анкету и контакт собеседника.
 
-Бот просит подтверждать участие каждую неделю. Подбирает собеседника только из тех, кто согласился.'''
+Бот просит подтверждать участие каждую неделю. Подбирает собеседника из тех, кто согласился.'''
 
 
 def ask_participate_markup(context):
     week_index = context.schedule.current_week_index() + 1
     return InlineKeyboardMarkup(row_width=1).add(
         InlineKeyboardButton(
-            text='Участвую',
+            text='✓ Участвую',
             callback_data=serialize_data(ParticipateData(week_index, agreed=1))
         ),
         InlineKeyboardButton(
-            text='Пропускаю неделю',
+            text='✗ Пропускаю неделю',
             callback_data=serialize_data(ParticipateData(week_index, agreed=0))
         ),
     )
@@ -195,7 +195,7 @@ async def send_contacts(context):
 def ask_feedback_text(partner_user):
     return f'''Как прошла встреча с <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>?
 
-Бот использует отзывы, чтобы лучше подбирать собеседников.'''
+Бот использует фидбек, чтобы лучше подбирать собеседников.'''
 
 
 def ask_feedback_markup(context, partner_user):
