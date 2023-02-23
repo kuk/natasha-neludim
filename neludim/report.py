@@ -178,7 +178,7 @@ class WeeksReportRecord:
 
     great_feedback: int = 0
     ok_feedback: int = 0
-    bad_feedack: int = 0
+    bad_feedback: int = 0
     none_feedback: int = 0
 
 
@@ -236,9 +236,9 @@ def gen_weeks_report(contacts):
                 elif feedback_score == GREAT_SCORE:
                     record.great_feedback += 1
                 elif feedback_score == OK_SCORE:
-                    record.ok_feedack += 1
+                    record.ok_feedback += 1
                 elif feedback_score == BAD_SCORE:
-                    record.bad_feedack += 1
+                    record.bad_feedback += 1
 
         seen_user_ids.update(user_ids)
         yield record
