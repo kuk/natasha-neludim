@@ -66,6 +66,10 @@ async def set_chat_state(db, id, state):
     await put_chat(db, chat)
 
 
+async def reset_chat_state(db, id):
+    await set_chat_state(db, id, state=None)
+
+
 ######
 #
 #   USERS
@@ -216,6 +220,7 @@ class DB:
 DB.put_chat = put_chat
 DB.get_chat = get_chat
 DB.set_chat_state = set_chat_state
+DB.reset_chat_state = reset_chat_state
 DB.get_chat_state = get_chat_state
 
 DB.get_user = get_user

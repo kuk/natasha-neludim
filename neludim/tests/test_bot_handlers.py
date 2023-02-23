@@ -179,7 +179,7 @@ async def test_feedback(context):
     assert match_trace(context.bot.trace, [
         ['answerCallbackQuery', '{"callback_query_id": "1"}'], 
         ['sendMessage', 'Дай, пожалуйста, фидбек'],
-        ['sendSticker', '{"chat_id": 1'],
+        ['sendMessage', 'Спасибо'],
     ])
     assert context.db.contacts[0].feedback_text == 'Все круто'
 
@@ -211,6 +211,7 @@ async def test_cancel_feedback(context):
 
     assert match_trace(context.bot.trace, [
         ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['sendMessage', 'спасибо'],
     ])
 
 

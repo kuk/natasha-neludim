@@ -275,10 +275,7 @@ async def handle_edit_input(context, message):
         text=profile_text(user),
         reply_markup=EDIT_PROFILE_MARKUP
     )
-    await context.db.set_chat_state(
-        message.chat.id,
-        state=None
-    )
+    await context.db.reset_chat_state(message.chat.id)
 
 
 ########
@@ -291,10 +288,7 @@ async def handle_edit_input(context, message):
 async def handle_cancel_edit(context, query):
     await query.answer()
     await query.message.delete()
-    await context.db.set_chat_state(
-        query.message.chat.id,
-        state=None
-    )
+    await context.db.reset_chat_state(query.message.chat.id)
 
 
 ######
@@ -350,7 +344,7 @@ async def handle_participate(context, query):
 
 FEEDBACK_TEXT = '''Была ли встреча полезна? Дай, пожалуйста, фидбек в свободной форме.
 
-Примеры
+Примеры:
 "Хотела узнать как работают в Сбердевайсах. Собеседник провёл экскурсию по офису и показал работу изнутри в nlp_rnd_core."
 
 "Познакомился с ребятами из X5, Сбера. Обучались в МФТИ, ВШЭ. С одним из них стал участвовать в хаках, 2 раза заняли первое место."
@@ -374,6 +368,10 @@ FAIL_FEEDBACK_TEXT = '''Напиши, пожалуйста, почему вст�
 - Анкета выглядит неинтересно, не стал писать
 - Не было времени, не списались
 - Отключил уведомления, пропустил сообщение от бота'''
+
+
+ANYWAY_THANK_FEEDBACK_TEXT = 'В любом случае, спасибо за фидбек!'
+THANK_FEEDBACK_TEXT = 'Спасибо за фидбек!'
 
 
 CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
@@ -421,10 +419,10 @@ async def handle_feedback(context, query):
 
 async def handle_cancel_feedback(context, query):
     await query.answer()
-    await context.db.set_chat_state(
-        query.message.chat.id,
-        state=None
+    await query.message.answer(
+        text=ANYWAY_THANK_FEEDBACK_TEXT
     )
+    await context.db.reset_chat_state(query.message.chat.id)
 
 
 async def handle_feedback_input(context, message):
@@ -440,9 +438,10 @@ async def handle_feedback_input(context, message):
     contact.feedback_text = message.text
     await context.db.put_contact(contact)
 
-    await message.reply_sticker(
-        sticker=random.choice(HAPPY_STICKERS)
+    await message.answer(
+        text=THANK_FEEDBACK_TEXT
     )
+    await context.db.reset_chat_state(message.chat.id)
 
 
 ######

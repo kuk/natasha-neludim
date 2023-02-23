@@ -48,6 +48,9 @@ class FakeDB(DB):
     async def set_chat_state(self, id, state):
         self.chat_states[id] = state
 
+    async def reset_chat_state(self, id):
+        await self.set_chat_state(id, state=None)
+
     async def get_chat_state(self, id):
         return self.chat_states.get(id)
 
