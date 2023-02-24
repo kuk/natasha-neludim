@@ -94,13 +94,9 @@ class MatchReportRecord:
     feedback_score: str
 
 
-def gen_match_report(contacts, week_index):
-    week_contacts = [
-        _ for _ in contacts
-        if _.week_index == week_index
-    ]
+def gen_match_report(contacts):
     group_contacts = defaultdict(list)
-    for contact in week_contacts:
+    for contact in contacts:
         user_id, partner_user_id = contact.user_id, contact.partner_user_id
         if partner_user_id and user_id > partner_user_id:
             user_id, partner_user_id = partner_user_id, user_id
@@ -135,9 +131,7 @@ def gen_match_report(contacts, week_index):
             )
 
 
-def format_match_report(users, records):
-    id_users = {_.user_id: _ for _ in users}
-
+def format_match_report(records, id_users):
     for index, record in enumerate(records):
         user = id_users[record.user_id]
         mention = user_mention(user)

@@ -161,16 +161,16 @@ def no_contact_text(context):
 
 
 async def send_contacts(context):
-    users = await context.db.read_users()
-    id_users = {_.user_id: _ for _ in users}
-
-    contacts = await context.db.read_contacts()
-    contacts = [
-        _ for _ in contacts
+    id_users = {
+        _.user_id: _
+        for _ in await context.db.read_users()
+    }
+    week_contacts = [
+        _ for _ in await context.db.read_contacts()
         if _.week_index == context.schedule.current_week_index()
     ]
 
-    for contact in contacts:
+    for contact in week_contacts:
         if contact.partner_user_id:
             partner_user = id_users[contact.partner_user_id]
             await context.broadcast.send_message(
@@ -236,16 +236,16 @@ def ask_feedback_markup(context, partner_user):
 
 
 async def ask_feedback(context):
-    users = await context.db.read_users()
-    id_users = {_.user_id: _ for _ in users}
-
-    contacts = await context.db.read_contacts()
-    contacts = [
-        _ for _ in contacts
+    id_users = {
+        _.user_id: _
+        for _ in await context.db.read_users()
+    }
+    week_contacts = [
+        _ for _ in await context.db.read_contacts()
         if _.week_index == context.schedule.current_week_index()
     ]
 
-    for contact in contacts:
+    for contact in week_contacts:
         if not contact.partner_user_id:
             continue
 
@@ -265,7 +265,10 @@ async def ask_feedback(context):
 
 
 async def send_reports(context):
-    users = await context.db.read_users()
+    id_users = {
+        _.user_id: _
+        for _ in await context.db.read_users()
+    }
     contacts = await context.db.read_contacts()
     current_week_index = context.schedule.current_week_index()
 
@@ -277,22 +280,24 @@ async def send_reports(context):
         text=text
     )
 
-    records = gen_match_report(
-        contacts,
-        week_index=current_week_index - 1
-    )
-    lines = format_match_report(users, records)
+    week_contacts = [
+        _ for _ in contacts
+        if _.week_index == current_week_index - 1
+    ]
+    records = gen_match_report(week_contacts)
+    lines = format_match_report(records, id_users)
     text = report_text(lines, html=True)
     await context.bot.send_message(
         chat_id=ADMIN_USER_ID,
         text=text
     )
 
-    records = gen_match_report(
-        contacts,
-        week_index=current_week_index
-    )
-    lines = format_match_report(users, records)
+    week_contacts = [
+        _ for _ in contacts
+        if _.week_index == current_week_index
+    ]
+    records = gen_match_report(week_contacts)
+    lines = format_match_report(records, id_users)
     text = report_text(lines, html=True)
     await context.bot.send_message(
         chat_id=ADMIN_USER_ID,

@@ -28,9 +28,10 @@ def test_match_report():
         User(user_id=2, username='b'),
         User(user_id=3, name='C'),
     ]
+    id_users = {_.user_id: _ for _ in users}
 
-    records = gen_match_report(contacts, week_index=0)
-    lines = format_match_report(users, records)
+    records = gen_match_report(contacts)
+    lines = format_match_report(records, id_users)
     assert report_text(lines) == '''
 ╭ F!    @a
 ╰ C  B! @b
