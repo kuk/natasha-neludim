@@ -1,11 +1,8 @@
 
-from dataclasses import (
-    replace,
-    fields,
-    dataclass
-)
+from dataclasses import dataclass
 from collections import defaultdict
 from itertools import groupby
+from copy import deepcopy
 
 from .text import user_mention
 from .const import (
@@ -16,58 +13,6 @@ from .const import (
     OK_SCORE,
     BAD_SCORE,
 )
-
-
-NO_PARTNER_STATE = 'no_partner'
-
-STATES_ORDER = [
-    CONFIRM_STATE,
-    FAIL_STATE,
-]
-
-SHORT_STATES = {
-    CONFIRM_STATE: 'C',
-    FAIL_STATE: 'F!',
-}
-SHORT_SCORES = {
-    GREAT_SCORE: 'G',
-    OK_SCORE: 'OK',
-    BAD_SCORE: 'B!',
-}
-
-NO_PARTNER_SYMBOL = 'NP'
-CORNER_SYMBOLS = ['╭', '╰']
-
-
-def propogate_contact_states(contacts):
-    group_contacts = defaultdict(list)
-    for contact in contacts:
-        if contact.partner_user_id:
-            user_id, partner_user_id = contact.user_id, contact.partner_user_id
-            if user_id > partner_user_id:
-                user_id, partner_user_id = partner_user_id, user_id
-            group_contacts[user_id, partner_user_id].append(contact)
-        else:
-            yield replace(contact, state=NO_PARTNER_STATE)
-
-    for group in group_contacts.values():
-        states = {_.state for _ in group if _.state}
-        has_feedback = any(_.feedback_score for _ in group)
-
-        if has_feedback:
-            state = CONFIRM_STATE
-        elif states:
-            if FAIL_STATE in states and CONFIRM_STATE in states:
-                state = None
-            elif CONFIRM_STATE in states:
-                state = CONFIRM_STATE
-            elif FAIL_STATE in states:
-                state = FAIL_STATE
-        else:
-            state = None
-
-        for contact in group:
-            yield replace(contact, state=state)
 
 
 def report_text(lines, html=False):
@@ -109,7 +54,10 @@ def gen_match_report(contacts):
 
         if states:
             has_state = True
-            state_order = min(STATES_ORDER.index(_) for _ in states)
+            state_order = (
+                0 if CONFIRM_STATE in states
+                else 1
+            )
         else:
             has_state = False
             state_order = None
@@ -139,15 +87,22 @@ def format_match_report(records, id_users):
         state, feedback_score, corner = '   '
 
         if record.no_partner:
-            state = NO_PARTNER_SYMBOL
+            state = 'NP'
         elif record.state:
-            state = SHORT_STATES[record.state]
+            state = {
+                CONFIRM_STATE: 'C',
+                FAIL_STATE: 'F!',
+            }[record.state]
 
         if record.feedback_score:
-            feedback_score = SHORT_SCORES[record.feedback_score]
+            feedback_score = {
+                GREAT_SCORE: 'G',
+                OK_SCORE: 'OK',
+                BAD_SCORE: 'B!',
+            }[record.feedback_score]
 
-        if state != NO_PARTNER_SYMBOL:
-            corner = CORNER_SYMBOLS[index % 2]
+        if state != 'NP':
+            corner = '╭╰'[index % 2]
 
         yield f'{corner} {state:<2} {feedback_score:>2} {mention}'
 
@@ -165,6 +120,7 @@ class WeeksReportRecord:
 
     total: int = 0
     first_time: int = 0
+    no_partner: int = 0
 
     confirm_state: int = 0
     fail_state: int = 0
@@ -176,38 +132,53 @@ class WeeksReportRecord:
     none_feedback: int = 0
 
 
-WEEKS_COLUMN_SYMBOLS = [
-    'W',
+def propogate_contact_states(contacts):
+    group_contacts = defaultdict(list)
+    for contact in contacts:
+        if contact.partner_user_id:
+            user_id, partner_user_id = contact.user_id, contact.partner_user_id
+            if user_id > partner_user_id:
+                user_id, partner_user_id = partner_user_id, user_id
+            group_contacts[user_id, partner_user_id].append(contact)
 
-    'T',
-    'FT',
+    for group in group_contacts.values():
+        states = {_.state for _ in group if _.state}
 
-    'C',
-    'F!',
-    '∅',
+        if states:
+            if FAIL_STATE in states and CONFIRM_STATE in states:
+                state = None
+            elif CONFIRM_STATE in states:
+                state = CONFIRM_STATE
+            elif FAIL_STATE in states:
+                state = FAIL_STATE
+        else:
+            state = None
 
-    'G',
-    'OK',
-    'B!',
-    '∅',
-]
+        for contact in group:
+            contact.state = state
 
 
 def gen_weeks_report(contacts):
     seen_user_ids = set()
 
-    contacts = propogate_contact_states(contacts)
     contacts = sorted(contacts, key=lambda _: _.week_index)
     for week_index, week_contacts in groupby(contacts, key=lambda _: _.week_index):
+        week_contacts = deepcopy(list(week_contacts))
+        propogate_contact_states(week_contacts)
+
         user_ids = set()
+        no_partner_user_ids = set()
         user_id_states = {}
         user_id_feedback_scores = {}
         for contact in week_contacts:
             user_ids.add(contact.user_id)
-            if contact.state:
-                user_id_states[contact.user_id] = contact.state
-            if contact.feedback_score:
-                user_id_feedback_scores[contact.user_id] = contact.feedback_score
+            if not contact.partner_user_id:
+                no_partner_user_ids.add(contact.user_id)
+            else:
+                if contact.state:
+                    user_id_states[contact.user_id] = contact.state
+                if contact.feedback_score:
+                    user_id_feedback_scores[contact.user_id] = contact.feedback_score
 
         record = WeeksReportRecord(week_index)
         for user_id in user_ids:
@@ -215,36 +186,40 @@ def gen_weeks_report(contacts):
             if user_id not in seen_user_ids:
                 record.first_time += 1
 
-            state = user_id_states.get(user_id)
-            if state is None:
-                record.none_state += 1
-            elif state == CONFIRM_STATE:
-                record.confirm_state += 1
-            elif state == FAIL_STATE:
-                record.fail_state += 1
+            if user_id in no_partner_user_ids:
+                record.no_partner += 1
+            else:
 
-            feedback_score = user_id_feedback_scores.get(user_id)
-            if state == CONFIRM_STATE:
-                if feedback_score is None:
-                    record.none_feedback += 1
-                elif feedback_score == GREAT_SCORE:
-                    record.great_feedback += 1
-                elif feedback_score == OK_SCORE:
-                    record.ok_feedback += 1
-                elif feedback_score == BAD_SCORE:
-                    record.bad_feedback += 1
+                state = user_id_states.get(user_id)
+                if state is None:
+                    record.none_state += 1
+                elif state == CONFIRM_STATE:
+                    record.confirm_state += 1
+                elif state == FAIL_STATE:
+                    record.fail_state += 1
+
+                feedback_score = user_id_feedback_scores.get(user_id)
+                if state == CONFIRM_STATE:
+                    if feedback_score is None:
+                        record.none_feedback += 1
+                    elif feedback_score == GREAT_SCORE:
+                        record.great_feedback += 1
+                    elif feedback_score == OK_SCORE:
+                        record.ok_feedback += 1
+                    elif feedback_score == BAD_SCORE:
+                        record.bad_feedback += 1
 
         seen_user_ids.update(user_ids)
         yield record
 
 
 def format_weeks_report(records):
-    for index, record in enumerate(records):
-        if index % 5 == 0:
-            yield ' '.join(_.rjust(2) for _ in WEEKS_COLUMN_SYMBOLS)
+    for index, _ in enumerate(records):
+        if index % 12 == 0:
+            yield ' T FT NP   C F!  ∅   +  -  ∅'
 
-        values = [
-            getattr(record, _.name)
-            for _ in fields(record)
-        ]
-        yield ' '.join(str(_).rjust(2) for _ in values)
+        yield (
+            f'{_.total:>2} {_.first_time:>2} {_.no_partner:>2}  '
+            f'{_.confirm_state:>2} {_.fail_state:>2} {_.none_state:>2}  '
+            f'{_.great_feedback + _.ok_feedback:>2} {_.bad_feedback:>2} {_.none_feedback:>2}'
+        )

@@ -49,7 +49,7 @@ def test_weeks_report():
     records = gen_weeks_report(contacts)
     lines = format_weeks_report(records)
     assert report_text(lines) == '''
- W  T FT  C F!  ∅  G OK B!  ∅
- 0  2  2  2  0  0  0  0  1  1
- 1  1  0  0  0  0  0  0  0  0
+ T FT NP   C F!  ∅   +  -  ∅
+ 2  2  0   0  0  2   0  0  0
+ 1  0  1   0  0  0   0  0  0
 '''.strip('\n')
