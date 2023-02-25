@@ -76,11 +76,6 @@ START_MARKUP = InlineKeyboardMarkup().add(
     )
 )
 
-BOT_COMMANDS = [
-    BotCommand(START_COMMAND, 'запуск'),
-    BotCommand(HELP_COMMAND, 'справка'),
-]
-
 
 async def handle_start(context, message):
     user = await context.db.get_user(message.from_user.id)
@@ -93,7 +88,6 @@ async def handle_start(context, message):
         )
         await context.db.put_user(user)
 
-    await context.bot.set_my_commands(commands=BOT_COMMANDS)
     await message.answer(
         text=START_TEXT,
         reply_markup=START_MARKUP
