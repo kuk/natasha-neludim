@@ -9,6 +9,8 @@ from aiogram.types import (
 )
 
 from neludim.const import (
+    ADMIN_USER_ID,
+
     START_COMMAND,
     HELP_COMMAND,
     V1_COMMANDS,
@@ -31,6 +33,8 @@ from neludim.const import (
     BAD_SCORE,
 )
 from neludim.text import (
+    user_url,
+    user_mention,
     day_month,
     profile_text,
 )
@@ -380,7 +384,6 @@ BAD_FEEDACK_TEXT = '''Напиши, пожалуйста, что не понра
 - Собеседник задержался, через 20 минут сказал что ему пора
 - Бессодрежательно, просто поболтали ни о чем'''
 
-
 FAIL_FEEDBACK_TEXT = '''Напиши, пожалуйста, почему встреча не состоялась.
 
 Примеры:
@@ -391,10 +394,8 @@ FAIL_FEEDBACK_TEXT = '''Напиши, пожалуйста, почему вст�
 - Не было времени, не списались
 - Отключил уведомления, пропустил сообщение от бота'''
 
-
 ANYWAY_THANK_FEEDBACK_TEXT = 'В любом случае, спасибо за фидбек!'
 THANK_FEEDBACK_TEXT = 'Спасибо за фидбек!'
-
 
 CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
     InlineKeyboardButton(
@@ -402,6 +403,11 @@ CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
         callback_data=CANCEL_FEEDBACK_DATA
     )
 )
+
+
+def send_admin_feedback_text(user, feedback_text):
+    return f'''Автор: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
+Фидбек: {feedback_text}'''
 
 
 async def handle_feedback(context, query):
@@ -464,6 +470,12 @@ async def handle_feedback_input(context, message):
         text=THANK_FEEDBACK_TEXT
     )
     await context.db.reset_chat_state(message.chat.id)
+
+    user = await context.db.get_user(message.from_user.id)
+    await context.bot.send_message(
+        chat_id=ADMIN_USER_ID,
+        text=send_admin_feedback_text(user, contact.feedback_text)
+    )
 
 
 ######

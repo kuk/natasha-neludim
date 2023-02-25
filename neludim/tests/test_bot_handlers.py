@@ -193,6 +193,7 @@ async def test_feedback(context):
         ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendMessage', 'Дай, пожалуйста, фидбек'],
         ['sendMessage', 'Спасибо'],
+        ['sendMessage', 'Автор:']
     ])
     assert context.db.contacts[0].feedback_text == 'Все круто'
 
