@@ -65,9 +65,13 @@ HAPPY_STICKERS = [
 ######
 
 
-START_TEXT = '''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
+def start_text(context):
+    return '''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
+
+В конце недели бот спросит "Участвуешь во встречах?". Если согласишься, в понедельник {day_month(context.schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
 Пожалуйста, заполни короткую анкету. Собеседник поймёт, чем ты занимаешься, о чём интересно спросить. Снимает неловкость в начале разговора.'''
+
 
 START_MARKUP = InlineKeyboardMarkup().add(
     InlineKeyboardButton(
@@ -89,7 +93,7 @@ async def handle_start(context, message):
         await context.db.put_user(user)
 
     await message.answer(
-        text=START_TEXT,
+        text=start_text(context),
         reply_markup=START_MARKUP
     )
 
