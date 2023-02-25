@@ -28,7 +28,6 @@ def query_json(data, username='alexkuk'):
 async def test_start(context):
     await process_update(context, message_json('/start'))
     assert match_trace(context.bot.trace, [
-        ['setMyCommands', '{"commands"'],
         ['sendMessage', 'Бот Нелюдим']
     ])
 
