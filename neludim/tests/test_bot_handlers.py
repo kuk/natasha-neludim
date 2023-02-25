@@ -14,8 +14,8 @@ def message_json(text):
     return '{"message": {"message_id": 2, "from": {"id": 1, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "chat": {"id": 1, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1659800990, "text": "%s", "entities": []}}' % text
 
 
-def query_json(data):
-    return '{"callback_query": {"id": "1", "from": {"id": 1, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "language_code": "ru"}, "message": {"message_id": 1, "from": {"id": 2, "is_bot": true, "first_name": "Neludim", "username": "neludim_bot"}, "chat": {"id": 1, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1664010458, "text": "", "entities": [], "reply_markup": {}}, "chat_instance": "1", "data": "%s"}}' % data
+def query_json(data, username='alexkuk'):
+    return '{"callback_query": {"id": "1", "from": {"id": 1, "is_bot": false, "first_name": "Alexander", "last_name": "Kukushkin", "username": "%s", "language_code": "ru"}, "message": {"message_id": 1, "from": {"id": 2, "is_bot": true, "first_name": "Neludim", "username": "neludim_bot"}, "chat": {"id": 1, "first_name": "Alexander", "last_name": "Kukushkin", "username": "alexkuk", "type": "private"}, "date": 1664010458, "text": "", "entities": [], "reply_markup": {}}, "chat_instance": "1", "data": "%s"}}' % (username, data)
 
 
 ######
@@ -157,6 +157,19 @@ async def test_late_participate(context):
     assert match_trace(context.bot.trace, [
         ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendMessage', 'Не дождался твоего ответа'],
+    ])
+
+    user = context.db.users[0]
+    assert not user.agreed_participate
+
+
+async def test_no_username(context):
+    context.db.users = [User(user_id=1)]
+    await process_update(context, query_json('participate:1:1', username=''))
+
+    assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['sendMessage', 'Пожалуйста, заполни юзернейм'],
     ])
 
     user = context.db.users[0]

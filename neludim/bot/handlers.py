@@ -306,6 +306,20 @@ def participate_text(context):
     return f'Пометил, что участвуешь во встречах. В понедельник {day_month(context.schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.'
 
 
+NO_USERNAME_TEXT = '''Пожалуйста, заполни юзернейм в настройках Телеграма: Настройки > Изменить профиль > Имя пользователя.
+
+Бот отправит твой юзернейм собеседнику. Без юзернейма собеседник не сможет тебе написать.'''
+
+
+def no_username_markup(week_index):
+    return InlineKeyboardMarkup().add(
+        InlineKeyboardButton(
+            text='✓ Заполнил юзернейм, участвую',
+            callback_data=serialize_data(ParticipateData(week_index, agreed=1))
+        )
+    )
+
+
 async def handle_participate(context, query):
     data = deserialize_data(query.data, ParticipateData)
     current_week_index = context.schedule.current_week_index()
@@ -322,6 +336,14 @@ async def handle_participate(context, query):
 
     if data.week_index != current_week_index + 1:
         await query.message.answer(text=LATE_PARTICIPATE_TEXT)
+        return
+
+    user.username = query.from_user.username
+    if not user.username:
+        await query.message.answer(
+            text=NO_USERNAME_TEXT,
+            reply_markup=no_username_markup(data.week_index)
+        )
         return
 
     user.agreed_participate = context.schedule.now()
