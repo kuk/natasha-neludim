@@ -183,7 +183,10 @@ async def test_no_username(context):
 
 
 async def test_feedback(context):
-    context.db.users = [User(user_id=1, partner_user_id=2)]
+    context.db.users = [
+        User(user_id=1, partner_user_id=2),
+        User(user_id=2, partner_user_id=1),
+    ]
     context.db.contacts = [Contact(week_index=0, user_id=1, partner_user_id=2)]
     await process_update(context, query_json('feedback:0:2:confirm:great'))
     await process_update(context, message_json('Все круто'))
@@ -192,7 +195,7 @@ async def test_feedback(context):
         ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendMessage', 'Дай, пожалуйста, фидбек'],
         ['sendMessage', 'Спасибо'],
-        ['sendMessage', 'Автор:']
+        ['sendMessage', 'Все круто']
     ])
     assert context.db.contacts[0].feedback_text == 'Все круто'
 

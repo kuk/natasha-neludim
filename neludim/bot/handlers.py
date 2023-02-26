@@ -32,7 +32,7 @@ from neludim.const import (
     BAD_SCORE,
 )
 from neludim.text import (
-    user_url,
+    EMPTY_SYMBOL,
     user_mention,
     day_month,
     profile_text,
@@ -404,9 +404,11 @@ CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
 )
 
 
-def send_admin_feedback_text(user, feedback_text):
-    return f'''Автор: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>
-Фидбек: {feedback_text}'''
+def send_admin_feedback_text(user, partner_user, contact):
+    return f'''{user_mention(user)} -> {user_mention(partner_user)}
+{contact.state} {contact.feedback_score or EMPTY_SYMBOL}
+
+{contact.feedback_text}'''
 
 
 async def handle_feedback(context, query):
@@ -470,10 +472,11 @@ async def handle_feedback_input(context, message):
     )
     await context.db.reset_chat_state(message.chat.id)
 
-    user = await context.db.get_user(message.from_user.id)
+    user = await context.db.get_user(contact.user_id)
+    partner_user = await context.db.get_user(contact.partner_user_id)
     await context.bot.send_message(
         chat_id=ADMIN_USER_ID,
-        text=send_admin_feedback_text(user, contact.feedback_text)
+        text=send_admin_feedback_text(user, partner_user, contact)
     )
 
 
