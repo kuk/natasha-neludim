@@ -3,7 +3,6 @@ import random
 from functools import partial
 
 from aiogram.types import (
-    BotCommand,
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
