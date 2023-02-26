@@ -66,7 +66,7 @@ HAPPY_STICKERS = [
 
 
 def start_text(context):
-    return '''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
+    return f'''Бот Нелюдим @neludim_bot организует random coffee для сообщества @natural_language_processing.
 
 В конце недели бот спросит "Участвуешь во встречах?". Если согласишься, в понедельник {day_month(context.schedule.next_week_monday())} бот пришлёт анкету и контакт собеседника.
 
