@@ -41,10 +41,6 @@ def user_mention(user):
     return user.user_id
 
 
-def user_url(user_id):
-    return f'tg://user?id={user_id}'
-
-
 EMPTY_SYMBOL = '∅'
 
 

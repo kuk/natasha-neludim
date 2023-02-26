@@ -16,7 +16,6 @@ from neludim.const import (
 )
 from neludim.text import (
     day_month,
-    user_url,
     user_mention,
     profile_text,
 )
@@ -149,7 +148,7 @@ async def create_contacts(context):
 
 
 def send_contact_text(user):
-    return f'''Бот подобрал тебе собеседника! Его контакт в Телеграме: <a href="{user_url(user.user_id)}">{user_mention(user)}</a>. Пожалуйста, договоритесь про время и место встречи.
+    return f'''Бот подобрал тебе собеседника! Его контакт в Телеграме: {user_mention(user)}. Пожалуйста, договоритесь про время и место встречи.
 
 {profile_text(user)}'''
 
@@ -192,7 +191,7 @@ async def send_contacts(context):
 
 
 def ask_feedback_text(partner_user):
-    return f'''Как прошла встреча с <a href="{user_url(partner_user.user_id)}">{user_mention(partner_user)}</a>?
+    return f'''Как прошла встреча с {user_mention(partner_user)}?
 
 Бот использует фидбек, чтобы лучше подбирать собеседников.'''
 
