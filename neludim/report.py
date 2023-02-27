@@ -16,7 +16,7 @@ from .const import (
 
 
 def report_text(lines, html=False):
-    text = '\n'.join(lines)
+    text = '\n'.join(lines) or '∅'
 
     if html:
         return '<pre>%s</pre>' % text
