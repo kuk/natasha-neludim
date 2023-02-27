@@ -1,5 +1,6 @@
 
 import asyncio
+from collections import Counter
 
 from aiogram import exceptions
 
@@ -10,7 +11,7 @@ class Broadcast:
         self.reset()
 
     def reset(self):
-        self.errors = {}
+        self.errors = Counter()
 
     async def send_message(self, chat_id, text, reply_markup=None):
         # https://github.com/aiogram/aiogram/blob/dev-2.x/examples/broadcast_example.py
@@ -23,7 +24,7 @@ class Broadcast:
 
         except exceptions.TelegramAPIError as error:
             # Common case: BotBlocked exceptions
-            self.errors[chat_id] = error.__class__.__name__
+            self.errors[error.__class__.__name__] += 1
 
         # https://habr.com/ru/post/543676/
         # Не больше одного сообщения в секунду в один чат,
