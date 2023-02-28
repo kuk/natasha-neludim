@@ -13,6 +13,9 @@ from neludim.const import (
     GREAT_SCORE,
     OK_SCORE,
     BAD_SCORE,
+
+    CONFIRM_ACTION,
+    MATCH_ACTION,
 )
 from neludim.text import (
     day_month,
@@ -37,7 +40,8 @@ from neludim.report import (
 from .data import (
     serialize_data,
     ParticipateData,
-    FeedbackData
+    FeedbackData,
+    ReviewProfileData,
 )
 
 
@@ -254,6 +258,56 @@ async def ask_feedback(context):
             text=ask_feedback_text(partner_user),
             reply_markup=ask_feedback_markup(context, partner_user)
         )
+
+
+######
+#
+#   REVIEW PROFILES
+#
+#####
+
+
+def review_profile_text(user):
+    return f'''profile {user_mention(user)}
+
+{profile_text(user)}'''
+
+
+def review_profile_markup(user):
+    return InlineKeyboardMarkup(row_width=2).add(
+        InlineKeyboardButton(
+            text='confirm',
+            callback_data=serialize_data(ReviewProfileData(CONFIRM_ACTION, user.user_id))
+        ),
+        InlineKeyboardButton(
+            text='match',
+            callback_data=serialize_data(ReviewProfileData(MATCH_ACTION, user.user_id))
+        )
+    )
+
+
+async def review_profiles(context):
+    users = await context.db.read_users()
+    current_week_index = context.schedule.current_week_index()
+
+    for user in users:
+        agreed_participate = (
+                user.agreed_participate
+                and week_index(user.agreed_participate) == current_week_index
+        )
+        confirmed_profile = (
+            user.confirmed_profile
+            and (
+                not user.updated_profile
+                or user.updated_profile <= user.confirmed_profile
+            )
+        )
+        if agreed_participate and not confirmed_profile:
+            await context.bot.send_message(
+                chat_id=ADMIN_USER_ID,
+                text=review_profile_text(user),
+                reply_markup=review_profile_markup(user)
+            )
 
 
 ######

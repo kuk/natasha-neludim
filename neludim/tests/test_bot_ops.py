@@ -15,6 +15,7 @@ from neludim.bot.ops import (
     send_contacts,
     ask_feedback,
     send_manual_matches,
+    review_profiles,
     send_reports
 )
 
@@ -78,6 +79,28 @@ async def test_ask_feedback(context):
     assert match_trace(context.bot.trace, [
         ['sendMessage', '@b'],
         ['sendMessage', '@a'],
+    ])
+
+
+async def test_review_profiles(context):
+    agreed_participate = week_index_monday(context.schedule.current_week_index())
+    context.db.users = [
+        User(
+            user_id=1, username='a',
+            agreed_participate=agreed_participate,
+            confirmed_profile=1,
+            updated_profile=2,
+        ),
+        User(
+            user_id=2, username='b',
+            agreed_participate=agreed_participate,
+            confirmed_profile=2,
+            updated_profile=1,
+        ),
+    ]
+    await review_profiles(context)
+    assert match_trace(context.bot.trace, [
+        ['sendMessage', '@a']
     ])
 
 

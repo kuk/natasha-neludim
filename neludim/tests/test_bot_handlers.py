@@ -231,6 +231,28 @@ async def test_cancel_feedback(context):
     ])
 
 
+#########
+#   REVIEW PROFILE
+####
+
+
+async def test_review_profile_confirm(context):
+    context.db.users = [User(user_id=1)]
+    await process_update(context, query_json('review_profile:confirm:1'))
+    assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', 'confirm']
+    ])
+    assert context.db.users[0].confirmed_profile
+
+
+async def test_review_profile_match(context):
+    await process_update(context, query_json('review_profile:match:1'))
+    assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', 'match']
+    ])
+    assert context.db.manual_matches
+
+
 #######
 #   HELP/OTHER
 #######

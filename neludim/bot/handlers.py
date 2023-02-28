@@ -22,6 +22,7 @@ from neludim.const import (
     EDIT_PROFILE_PREFIX,
     PARTICIPATE_PREFIX,
     FEEDBACK_PREFIX,
+    REVIEW_PROFILE_PREFIX,
 
     CANCEL_EDIT_DATA,
     CANCEL_FEEDBACK_DATA,
@@ -30,6 +31,9 @@ from neludim.const import (
     CONFIRM_STATE,
 
     BAD_SCORE,
+
+    CONFIRM_ACTION,
+    MATCH_ACTION,
 )
 from neludim.text import (
     EMPTY_SYMBOL,
@@ -37,7 +41,10 @@ from neludim.text import (
     day_month,
     profile_text,
 )
-from neludim.obj import User
+from neludim.obj import (
+    User,
+    Match
+)
 
 from .data import (
     serialize_data,
@@ -45,6 +52,7 @@ from .data import (
     EditProfileData,
     ParticipateData,
     FeedbackData,
+    ReviewProfileData,
 )
 
 
@@ -480,6 +488,27 @@ async def handle_feedback_input(context, message):
     )
 
 
+#####
+#
+#   REVIEW PROFILE
+#
+####
+
+
+async def handle_review_profile(context, query):
+    data = deserialize_data(query.data, ReviewProfileData)
+    await query.answer(text=data.action)
+
+    if data.action == CONFIRM_ACTION:
+        user = await context.db.get_user(data.user_id)
+        user.confirmed_profile = context.schedule.now()
+        await context.db.put_user(user)
+
+    elif data.action == MATCH_ACTION:
+        match = Match(ADMIN_USER_ID, data.user_id)
+        await context.db.put_manual_match(match)
+
+
 ######
 #
 #  HELP/OTHER
@@ -582,6 +611,11 @@ def setup_handlers(context):
     context.dispatcher.register_callback_query_handler(
         partial(handle_cancel_feedback, context),
         text=CANCEL_FEEDBACK_DATA
+    )
+
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_review_profile, context),
+        text_startswith=REVIEW_PROFILE_PREFIX
     )
 
     context.dispatcher.register_message_handler(
