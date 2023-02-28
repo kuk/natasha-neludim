@@ -258,6 +258,45 @@ async def ask_feedback(context):
 
 ######
 #
+#   SEND MANUAL MATCHES
+#
+#####
+
+
+def manual_match_text(user, partner_user):
+    return f'manual_match {user_mention(user)} -> {user_mention(partner_user)}'
+
+
+async def send_manual_matches(context):
+    contacts = await context.db.read_contacts()
+    manual_matches = await context.db.read_manual_matches()
+    id_users = {
+        _.user_id: _
+        for _ in await context.db.read_users()
+    }
+
+    skip_matches = set()
+    for contact in contacts:
+        if contact.partner_user_id:
+            skip_matches.add((contact.user_id, contact.partner_user_id))
+            skip_matches.add((contact.partner_user_id, contact.user_id))
+
+    for match in manual_matches:
+        if (
+                (match.user_id, match.partner_user_id) not in skip_matches
+                and (match.partner_user_id, match.user_id) not in skip_matches
+                and ADMIN_USER_ID in (match.user_id, match.partner_user_id)
+        ):
+            user = id_users[match.user_id]
+            partner_user = id_users[match.partner_user_id]
+            await context.bot.send_message(
+                chat_id=ADMIN_USER_ID,
+                text=manual_match_text(user, partner_user)
+            )
+
+
+######
+#
 #   SEND REPORTS
 #
 ######
