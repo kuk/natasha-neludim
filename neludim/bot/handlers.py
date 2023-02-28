@@ -404,7 +404,7 @@ CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
 )
 
 
-def send_admin_feedback_text(user, partner_user, contact):
+def admin_feedback_text(user, partner_user, contact):
     return f'''{user_mention(user)} -> {user_mention(partner_user)}
 {contact.state} {contact.feedback_score or EMPTY_SYMBOL}
 
@@ -476,7 +476,7 @@ async def handle_feedback_input(context, message):
     partner_user = await context.db.get_user(contact.partner_user_id)
     await context.bot.send_message(
         chat_id=ADMIN_USER_ID,
-        text=send_admin_feedback_text(user, partner_user, contact)
+        text=admin_feedback_text(user, partner_user, contact)
     )
 
 
