@@ -405,7 +405,7 @@ CANCEL_FEEDBACK_MARKUP = InlineKeyboardMarkup().add(
 
 
 def admin_feedback_text(user, partner_user, contact):
-    return f'''{user_mention(user)} -> {user_mention(partner_user)}
+    return f'''feedback {user_mention(user)} -> {user_mention(partner_user)}
 {contact.state} {contact.feedback_score or EMPTY_SYMBOL}
 
 {contact.feedback_text}'''
