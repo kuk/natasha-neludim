@@ -333,9 +333,9 @@ def no_username_markup(week_index):
 
 async def handle_participate(context, query):
     data = deserialize_data(query.data, ParticipateData)
-    current_week_index = context.schedule.current_week_index()
-
     await query.answer()
+
+    current_week_index = context.schedule.current_week_index()
     user = await context.db.get_user(query.from_user.id)
 
     if not data.agreed:
@@ -421,6 +421,7 @@ def admin_feedback_text(user, partner_user, contact):
 
 async def handle_feedback(context, query):
     data = deserialize_data(query.data, FeedbackData)
+    await query.answer()
 
     key = (
         data.week_index,
@@ -440,7 +441,6 @@ async def handle_feedback(context, query):
     else:
         text = FEEDBACK_TEXT
 
-    await query.answer()
     await query.message.answer(
         text=text,
         reply_markup=CANCEL_FEEDBACK_MARKUP
