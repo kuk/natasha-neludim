@@ -18,7 +18,7 @@ push:
 deploy-bot:
 	yc serverless container revision deploy \
 		--container-name bot \
-		--image $(REGISTRY)/natasha-neludim:latest \
+		--image $(REGISTRY)/$(IMAGE):latest \
 		--args bot-webhook \
 		--cores 1 \
 		--memory 256MB \
@@ -35,7 +35,7 @@ deploy-bot:
 deploy-trigger:
 	yc serverless container revision deploy \
 		--container-name trigger \
-		--image $(REGISTRY)/natasha-neludim:latest \
+		--image $(REGISTRY)/$(IMAGE):latest \
 		--args trigger-webhook \
 		--cores 1 \
 		--memory 256MB \
