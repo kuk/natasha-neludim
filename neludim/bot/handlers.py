@@ -331,6 +331,19 @@ def no_username_markup(week_index):
     )
 
 
+NO_ABOUT_TEXT = '''Пожалуйста, заполни "Ссылки" или "О себе" в анкете.
+
+- Собеседник поймёт чем ты занимаешься, о чём интересно спросить.
+- Алгоритм сначала метчит участников с заполненными анкетами. С пустой анкетой выше вероятность остаться без собеседника.'''
+
+NO_ABOUT_MARKUP = InlineKeyboardMarkup().add(
+    InlineKeyboardButton(
+        text='✎ Заполнить анкету',
+        callback_data=serialize_data(EditProfileData())
+    )
+)
+
+
 async def handle_participate(context, query):
     data = deserialize_data(query.data, ParticipateData)
     await query.answer()
@@ -366,6 +379,12 @@ async def handle_participate(context, query):
     await query.message.answer(
         text=participate_text(context)
     )
+
+    if not user.links and not user.about:
+        await query.message.answer(
+            text=NO_ABOUT_TEXT,
+            reply_markup=NO_ABOUT_MARKUP
+        )
 
 
 ######

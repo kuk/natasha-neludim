@@ -130,6 +130,7 @@ async def test_participate(context):
         ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendSticker', '{"chat_id": 1'],
         ['sendMessage', 'Пометил, что участвуешь'],
+        ['sendMessage', 'Пожалуйста, заполни'],
     ])
 
     user = context.db.users[0]
