@@ -34,6 +34,8 @@ from neludim.const import (
 
     CONFIRM_ACTION,
     MATCH_ACTION,
+
+    CITIES,
 )
 from neludim.text import (
     EMPTY_SYMBOL,
@@ -265,6 +267,18 @@ async def handle_edit_about(context, query):
 #####
 
 
+def warn_city_text(city, cities=CITIES):
+    return f'''⚠ Не нашел город "{city}" базе участников. Бот сравнивает названия посимвольно.
+
+Города из базы участников: {", ".join(cities)}.
+
+Советы:
+- London -> Лондон, Moscow -> Москва
+- Долгопрудный/Москва -> Москва
+- Италия -> Рим, Краснодарский край -> Сочи
+- Ростов-на-дону -> Ростов-на-Дону, Тель Авив -> Тель-Авив'''
+
+
 async def handle_edit_input(context, message):
     user = await context.db.get_user(message.from_user.id)
     state = await context.db.get_chat_state(message.chat.id)
@@ -287,6 +301,9 @@ async def handle_edit_input(context, message):
         reply_markup=EDIT_PROFILE_MARKUP
     )
     await context.db.reset_chat_state(message.chat.id)
+
+    if data.field == CITY_FIELD and user.city not in CITIES:
+        await message.answer(text=warn_city_text(user.city, CITIES))
 
 
 ########

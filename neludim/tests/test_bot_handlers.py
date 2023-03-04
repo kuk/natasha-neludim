@@ -76,6 +76,7 @@ async def test_edit_city(context):
         ['answerCallbackQuery', '{"callback_query_id": "1"}'],
         ['sendMessage', '{"chat_id": 1, "text": "Напиши город'],
         ['sendMessage', 'Город: Moscow'],
+        ['sendMessage', 'Не нашел город'],
     ])
     assert context.db.users[0].city == 'Moscow'
 
