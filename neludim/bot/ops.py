@@ -291,6 +291,10 @@ async def review_profiles(context):
     current_week_index = context.schedule.current_week_index()
 
     for user in users:
+        has_about = (
+            user.links is not None
+            or user.about is not None
+        )
         agreed_participate = (
                 user.agreed_participate
                 and week_index(user.agreed_participate) == current_week_index
@@ -302,7 +306,7 @@ async def review_profiles(context):
                 or user.updated_profile <= user.confirmed_profile
             )
         )
-        if agreed_participate and not confirmed_profile:
+        if has_about and agreed_participate and not confirmed_profile:
             await context.bot.send_message(
                 chat_id=ADMIN_USER_ID,
                 text=review_profile_text(user),
@@ -318,7 +322,7 @@ async def review_profiles(context):
 
 
 def manual_match_text(user, partner_user):
-    return f'manual_match {user_mention(user)} -> {user_mention(partner_user)}'
+    return f'manual match {user_mention(user)} -> {user_mention(partner_user)}'
 
 
 async def send_manual_matches(context):

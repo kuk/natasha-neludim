@@ -3,6 +3,7 @@ from neludim.obj import (
     User,
     Contact,
 )
+from neludim.const import ADMIN_USER_ID
 
 from neludim.tests.fake import (
     process_update,
@@ -242,15 +243,21 @@ async def test_review_profile_confirm(context):
     context.db.users = [User(user_id=1)]
     await process_update(context, query_json('review_profile:confirm:1'))
     assert match_trace(context.bot.trace, [
-        ['answerCallbackQuery', 'confirm']
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['deleteMessage', '{"chat_id": 1, "message_id": 1}']
     ])
     assert context.db.users[0].confirmed_profile
 
 
 async def test_review_profile_match(context):
+    context.db.users = [
+        User(user_id=ADMIN_USER_ID),
+        User(user_id=1)
+    ]
     await process_update(context, query_json('review_profile:match:1'))
     assert match_trace(context.bot.trace, [
-        ['answerCallbackQuery', 'match']
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['sendMessage', '->'],
     ])
     assert context.db.manual_matches
 

@@ -86,13 +86,13 @@ async def test_review_profiles(context):
     agreed_participate = week_index_monday(context.schedule.current_week_index())
     context.db.users = [
         User(
-            user_id=1, username='a',
+            user_id=1, username='a', about=True,
             agreed_participate=agreed_participate,
             confirmed_profile=1,
             updated_profile=2,
         ),
         User(
-            user_id=2, username='b',
+            user_id=2, username='b', about=True,
             agreed_participate=agreed_participate,
             confirmed_profile=2,
             updated_profile=1,
@@ -119,7 +119,7 @@ async def test_send_manual_matches(context):
     ]
     await send_manual_matches(context)
     assert match_trace(context.bot.trace, [
-        ['sendMessage', 'manual_match @b -> @admin']
+        ['sendMessage', '@b -> @admin']
     ])
 
 

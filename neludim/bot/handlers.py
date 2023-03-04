@@ -531,18 +531,29 @@ async def handle_feedback_input(context, message):
 ####
 
 
+def manual_match_text(user, partner_user):
+    return f'manual match {user_mention(user)} -> {user_mention(partner_user)}'
+
+
 async def handle_review_profile(context, query):
     data = deserialize_data(query.data, ReviewProfileData)
-    await query.answer(text=data.action)
+    await query.answer()
 
     if data.action == CONFIRM_ACTION:
         user = await context.db.get_user(data.user_id)
         user.confirmed_profile = context.schedule.now()
         await context.db.put_user(user)
+        await query.message.delete()
 
     elif data.action == MATCH_ACTION:
         match = Match(ADMIN_USER_ID, data.user_id)
         await context.db.put_manual_match(match)
+
+        user = await context.db.get_user(ADMIN_USER_ID)
+        partner_user = await context.db.get_user(data.user_id)
+        await query.message.answer(
+            text=manual_match_text(user, partner_user)
+        )
 
 
 ######
