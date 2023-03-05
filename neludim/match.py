@@ -1,91 +1,91 @@
 
 import random
-from collections import (
-    defaultdict,
-    Counter
-)
 
 from .obj import Match
+from .const import GREAT_SCORE
 
 
-def gen_matches(users, skip_matches=(), manual_matches=(), seed=0):
-    random.seed(seed)
-
-    user_ids = {_.user_id for _ in users}
-
-    skip_matches_index = defaultdict(set)
-    for match in skip_matches:
-        skip_matches_index[match.user_id].add(match.partner_user_id)
-        skip_matches_index[match.partner_user_id].add(match.user_id)
-
-    manual_matches_index = defaultdict(set)
-    for match in manual_matches:
-        if (
-                match.user_id in user_ids and match.partner_user_id in user_ids
-                and match.partner_user_id not in skip_matches_index[match.user_id]
-        ):
-            manual_matches_index[match.user_id].add(match.partner_user_id)
-            manual_matches_index[match.partner_user_id].add(match.user_id)
-
-    city_weights = Counter(
-        _.city for _ in users
-        if _.city
+def is_repeat_contact(contact, current_week_index):
+    return (
     )
 
-    def key(user):
-        has_manual_match = user.user_id in manual_matches_index
-        has_about = (
-            user.links is not None
-            or user.about is not None
+
+def gen_matches(users, manual_matches=(), contacts=(), current_week_index=0, seed=0):
+    # <100 users per week, ok to have O(N^2) algo
+    random.seed(seed)
+
+    contacts_index = {}
+    for contact in contacts:
+        if contact.partner_user_id:
+            contacts_index[contact.user_id, contact.partner_user_id] = contact
+            contacts_index[contact.partner_user_id, contact.user_id] = contact
+
+    manual_matches_index = set()
+    for match in manual_matches:
+        manual_matches_index.add((match.user_id, match.partner_user_id))
+        manual_matches_index.add((match.partner_user_id, match.user_id))
+
+    def score_match(user, partner_user):
+        contact = contacts_index.get((user.user_id, partner_user.user_id))
+
+        is_repeat_contact = False
+        if (
+                contact
+                and contact.feedback_score == GREAT_SCORE
+                and current_week_index - contact.week_index > 12
+        ):
+            is_repeat_contact = True
+
+        if contact and not is_repeat_contact:
+            return
+
+        is_manual_match = (
+            (user.user_id, partner_user.user_id) in manual_matches_index
+            and not contact
         )
 
-        city_weight = 0
-        if user.city:
-            city_weight = city_weights[user.city]
+        has_about = user.links is not None or user.about is not None
+        partner_has_about = partner_user.links is not None or partner_user.about is not None
+        match_about = (
+            has_about and partner_has_about
+            or not has_about and not partner_has_about
+        )
+
+        same_city = False
+        if user.city and partner_user.city:
+            same_city = user.city == partner_user.city
 
         return (
-            has_manual_match,
-            has_about,
-            city_weight,
+            is_manual_match,
+            match_about,
+            same_city,
+            not is_repeat_contact,
 
-            # shuffle inside groups
+            # shuffle same
             random.random()
         )
 
-    users = sorted(users, key=key, reverse=True)
+    match_scores = {}
+    for user in users:
+        for partner_user in users:
+            if user.user_id >= partner_user.user_id:
+                continue
+
+            score = score_match(user, partner_user)
+            if score:
+                match_scores[user.user_id, partner_user.user_id] = score
 
     matched_user_ids = set()
-    for user in users:
-        if user.user_id in matched_user_ids:
+    for user_id, partner_user_id in sorted(match_scores, key=match_scores.get, reverse=True):
+        if (
+                user_id in matched_user_ids
+                or partner_user_id in matched_user_ids
+        ):
             continue
 
-        # <100 users per week, ok N(O^2) algo
-        partner_users = [
-            _ for _ in users
-            if _.user_id != user.user_id
-            if _.user_id not in matched_user_ids
-            if _.user_id not in skip_matches_index[user.user_id]
-        ]
+        matched_user_ids.update((user_id, partner_user_id))
+        yield Match(user_id, partner_user_id)
 
-        partner_user_id = None
-        if partner_users:
-
-            def key(partner_user, user=user):
-                is_manual_match = partner_user.user_id in manual_matches_index[user.user_id]
-
-                same_city = False
-                if user.city and partner_user.city:
-                    same_city = user.city == partner_user.city
-
-                return (
-                    is_manual_match,
-                    same_city
-                )
-
-            # key is similarity, bigger better
-            partner_users = sorted(partner_users, key=key, reverse=True)
-            partner_user_id = partner_users[0].user_id
-
-        matched_user_ids.add(user.user_id)
-        matched_user_ids.add(partner_user_id)
-        yield Match(user.user_id, partner_user_id)
+    for user in users:
+        if user.user_id not in matched_user_ids:
+            yield Match(user.user_id, partner_user_id=None)
