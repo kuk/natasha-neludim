@@ -34,8 +34,10 @@ from neludim.const import (
 
     CONFIRM_ACTION,
     MATCH_ACTION,
-
+)
+from neludim.city import (
     CITIES,
+    norm_city
 )
 from neludim.text import (
     EMPTY_SYMBOL,
@@ -276,7 +278,7 @@ def warn_city_text(city, cities=CITIES):
 - London -> Лондон, Moscow -> Москва
 - Долгопрудный/Москва -> Москва
 - Италия -> Рим, Краснодарский край -> Сочи
-- Ростов-на-дону -> Ростов-на-Дону, Тель Авив -> Тель-Авив'''
+- Тель Авив -> Тель-Авив'''
 
 
 async def handle_edit_input(context, message):
@@ -287,7 +289,7 @@ async def handle_edit_input(context, message):
     if data.field == NAME_FIELD:
         user.name = message.text
     elif data.field == CITY_FIELD:
-        user.city = message.text
+        user.city = norm_city(message.text)
     elif data.field == LINKS_FIELD:
         user.links = message.text
     elif data.field == ABOUT_FIELD:
