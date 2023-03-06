@@ -6,6 +6,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
+from aiogram.utils import exceptions
 
 from neludim.const import (
     ADMIN_USER_ID,
@@ -315,9 +316,17 @@ async def handle_edit_input(context, message):
 ###
 
 
+async def safe_delete(message):
+    try:
+        await message.delete()
+    except exceptions.MessageToDeleteNotFound:
+        # Pressed CANCEL_EDIT_DATA twice for example
+        pass
+
+
 async def handle_cancel_edit(context, query):
     await query.answer()
-    await query.message.delete()
+    await safe_delete(query.message)
     await context.db.reset_chat_state(query.message.chat.id)
 
 
@@ -547,7 +556,7 @@ async def handle_review_profile(context, query):
         user = await context.db.get_user(data.user_id)
         user.confirmed_profile = context.schedule.now()
         await context.db.put_user(user)
-        await query.message.delete()
+        await safe_delete(query.message)
 
     elif data.action == MATCH_ACTION:
         match = Match(ADMIN_USER_ID, data.user_id)
