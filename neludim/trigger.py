@@ -90,7 +90,12 @@ async def handle_trigger(context, request):
         log.info(json_msg(task=task.name))
         await task.op(context)
 
-        log.info(json_msg(errors=context.broadcast.errors))
+        total = len(context.broadcast.results)
+        if total:
+            log.info(json_msg(task=task.name, total=total))
+            for result in context.broadcast.results:
+                if result.error:
+                    log.info(json_msg(chat_id=result.chat_id, error=result.error))
         context.broadcast.reset()
 
     return web.Response()
