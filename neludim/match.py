@@ -5,11 +5,6 @@ from .obj import Match
 from .const import GREAT_SCORE
 
 
-def is_repeat_contact(contact, current_week_index):
-    return (
-    )
-
-
 def gen_matches(users, manual_matches=(), contacts=(), current_week_index=0, seed=0):
     # <100 users per week, ok to have O(N^2) algo
     random.seed(seed)
