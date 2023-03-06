@@ -271,7 +271,7 @@ async def handle_edit_about(context, query):
 
 
 def warn_city_text(city, cities=CITIES):
-    return f'''⚠ Не нашел город "{city}" базе участников. Бот сравнивает названия посимвольно.
+    return f'''⚠ Не нашел город "{city}" в базе участников. Бот сравнивает названия посимвольно.
 
 Города из базы участников: {", ".join(cities)}.
 
