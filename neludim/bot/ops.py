@@ -13,9 +13,6 @@ from neludim.const import (
     GREAT_SCORE,
     OK_SCORE,
     BAD_SCORE,
-
-    CONFIRM_ACTION,
-    MATCH_ACTION,
 )
 from neludim.text import (
     day_month,
@@ -39,7 +36,6 @@ from .data import (
     serialize_data,
     ParticipateData,
     FeedbackData,
-    ReviewProfileData,
 )
 
 
@@ -252,99 +248,6 @@ async def ask_feedback(context):
             text=ask_feedback_text(partner_user),
             reply_markup=ask_feedback_markup(context, partner_user)
         )
-
-
-######
-#
-#   REVIEW PROFILES
-#
-#####
-
-
-def review_profile_text(user):
-    return f'''profile {user_mention(user)}
-
-{profile_text(user)}'''
-
-
-def review_profile_markup(user):
-    return InlineKeyboardMarkup(row_width=2).add(
-        InlineKeyboardButton(
-            text='confirm',
-            callback_data=serialize_data(ReviewProfileData(CONFIRM_ACTION, user.user_id))
-        ),
-        InlineKeyboardButton(
-            text='match',
-            callback_data=serialize_data(ReviewProfileData(MATCH_ACTION, user.user_id))
-        )
-    )
-
-
-async def review_profiles(context):
-    users = await context.db.read_users()
-    current_week_index = context.schedule.current_week_index()
-
-    for user in users:
-        has_about = (
-            user.links is not None
-            or user.about is not None
-        )
-        agreed_participate = (
-                user.agreed_participate
-                and week_index(user.agreed_participate) == current_week_index
-        )
-        confirmed_profile = (
-            user.confirmed_profile
-            and (
-                not user.updated_profile
-                or user.updated_profile <= user.confirmed_profile
-            )
-        )
-        if has_about and agreed_participate and not confirmed_profile:
-            await context.bot.send_message(
-                chat_id=ADMIN_USER_ID,
-                text=review_profile_text(user),
-                reply_markup=review_profile_markup(user)
-            )
-
-
-######
-#
-#   SEND MANUAL MATCHES
-#
-#####
-
-
-def manual_match_text(user, partner_user):
-    return f'manual match {user_mention(user)} -> {user_mention(partner_user)}'
-
-
-async def send_manual_matches(context):
-    contacts = await context.db.read_contacts()
-    manual_matches = await context.db.read_manual_matches()
-    id_users = {
-        _.user_id: _
-        for _ in await context.db.read_users()
-    }
-
-    skip_matches_index = set()
-    for contact in contacts:
-        if contact.partner_user_id:
-            skip_matches_index.add((contact.user_id, contact.partner_user_id))
-            skip_matches_index.add((contact.partner_user_id, contact.user_id))
-
-    for match in manual_matches:
-        if (
-                (match.user_id, match.partner_user_id) not in skip_matches_index
-                and (match.partner_user_id, match.user_id) not in skip_matches_index
-                and ADMIN_USER_ID in (match.user_id, match.partner_user_id)
-        ):
-            user = id_users[match.user_id]
-            partner_user = id_users[match.partner_user_id]
-            await context.bot.send_message(
-                chat_id=ADMIN_USER_ID,
-                text=manual_match_text(user, partner_user)
-            )
 
 
 ######

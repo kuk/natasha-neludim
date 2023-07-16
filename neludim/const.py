@@ -97,7 +97,6 @@ HELP_COMMAND = 'help'
 EDIT_PROFILE_PREFIX = 'edit_profile'
 PARTICIPATE_PREFIX = 'participate'
 FEEDBACK_PREFIX = 'feedback'
-REVIEW_PROFILE_PREFIX = 'review_profile'
 
 CANCEL_EDIT_DATA = 'cancel_edit'
 CANCEL_FEEDBACK_DATA = 'cancel_feedback'
@@ -117,13 +116,6 @@ ABOUT_FIELD = 'about'
 
 CONFIRM_STATE = 'confirm'
 FAIL_STATE = 'fail'
-
-####
-#  ACTION
-#####
-
-CONFIRM_ACTION = 'confirm'
-MATCH_ACTION = 'match'
 
 #####
 #  SCORE

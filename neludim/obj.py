@@ -30,7 +30,6 @@ class User:
     links: str = None
     about: str = None
     updated_profile: Datetime = None
-    confirmed_profile: Datetime = None
 
     agreed_participate: Datetime = None
     partner_user_id: int = None

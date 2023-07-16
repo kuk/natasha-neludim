@@ -8,7 +8,6 @@ from neludim.const import (
     EDIT_PROFILE_PREFIX,
     PARTICIPATE_PREFIX,
     FEEDBACK_PREFIX,
-    REVIEW_PROFILE_PREFIX,
 )
 
 
@@ -35,14 +34,6 @@ class FeedbackData:
     partner_user_id: int
     state: str = None
     feedback_score: str = None
-
-
-@dataclass
-class ReviewProfileData:
-    prefix = REVIEW_PROFILE_PREFIX
-
-    action: str
-    user_id: int
 
 
 def obj_annots(obj):

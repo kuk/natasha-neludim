@@ -22,7 +22,6 @@ from neludim.const import (
     EDIT_PROFILE_PREFIX,
     PARTICIPATE_PREFIX,
     FEEDBACK_PREFIX,
-    REVIEW_PROFILE_PREFIX,
 
     CANCEL_EDIT_DATA,
     CANCEL_FEEDBACK_DATA,
@@ -31,9 +30,6 @@ from neludim.const import (
     CONFIRM_STATE,
 
     BAD_SCORE,
-
-    CONFIRM_ACTION,
-    MATCH_ACTION,
 )
 from neludim.city import (
     CITIES,
@@ -45,10 +41,7 @@ from neludim.text import (
     day_month,
     profile_text,
 )
-from neludim.obj import (
-    User,
-    Match
-)
+from neludim.obj import User
 
 from .data import (
     serialize_data,
@@ -56,7 +49,6 @@ from .data import (
     EditProfileData,
     ParticipateData,
     FeedbackData,
-    ReviewProfileData,
 )
 
 
@@ -536,38 +528,6 @@ async def handle_feedback_input(context, message):
     )
 
 
-#####
-#
-#   REVIEW PROFILE
-#
-####
-
-
-def manual_match_text(user, partner_user):
-    return f'manual match {user_mention(user)} -> {user_mention(partner_user)}'
-
-
-async def handle_review_profile(context, query):
-    data = deserialize_data(query.data, ReviewProfileData)
-    await query.answer()
-
-    if data.action == CONFIRM_ACTION:
-        user = await context.db.get_user(data.user_id)
-        user.confirmed_profile = context.schedule.now()
-        await context.db.put_user(user)
-        await safe_delete(query.message)
-
-    elif data.action == MATCH_ACTION:
-        match = Match(ADMIN_USER_ID, data.user_id)
-        await context.db.put_manual_match(match)
-
-        user = await context.db.get_user(ADMIN_USER_ID)
-        partner_user = await context.db.get_user(data.user_id)
-        await query.message.answer(
-            text=manual_match_text(user, partner_user)
-        )
-
-
 ######
 #
 #  HELP/OTHER
@@ -654,11 +614,6 @@ def setup_handlers(context):
     context.dispatcher.register_callback_query_handler(
         partial(handle_cancel_feedback, context),
         text=CANCEL_FEEDBACK_DATA
-    )
-
-    context.dispatcher.register_callback_query_handler(
-        partial(handle_review_profile, context),
-        text_startswith=REVIEW_PROFILE_PREFIX
     )
 
     context.dispatcher.register_message_handler(
