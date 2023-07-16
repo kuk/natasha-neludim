@@ -13,7 +13,6 @@ from neludim.const import (
 
     START_COMMAND,
     HELP_COMMAND,
-    V1_COMMANDS,
 
     NAME_FIELD,
     CITY_FIELD,
@@ -607,22 +606,6 @@ async def handle_other(context, message):
 
 #######
 #
-#   V1
-#
-####
-
-
-V1_COMMANDS_TEXT = f'''20 февраля 2023 обновил интерфейс бота.
-
-Чтобы изменить профиль, нажми /{START_COMMAND}. В остальных случаях бот сам в нужный момент пришлет нужное сообщение, подскажет куда нажимать.'''
-
-
-async def handle_v1_commands(context, message):
-    await message.answer(text=V1_COMMANDS_TEXT)
-
-
-#######
-#
 #   SETUP
 #
 ######
@@ -696,10 +679,6 @@ def setup_handlers(context):
         chat_state_startswith=FEEDBACK_PREFIX
     )
 
-    context.dispatcher.register_message_handler(
-        partial(handle_v1_commands, context),
-        commands=V1_COMMANDS,
-    )
     context.dispatcher.register_message_handler(
         partial(handle_other, context)
     )

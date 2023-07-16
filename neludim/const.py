@@ -90,26 +90,6 @@ MANUAL_MATCHES_KEY = 'key'
 START_COMMAND = 'start'
 HELP_COMMAND = 'help'
 
-V1_COMMANDS = [
-    'edit_profile',
-    'edit_name',
-    'edit_city',
-    'edit_links',
-    'edit_about',
-
-    'cancel',
-    'empty',
-
-    'participate',
-    'pause_week',
-    'pause_month',
-
-    'show_contact',
-    'confirm_contact',
-    'fail_contact',
-    'contact_feedback',
-]
-
 ######
 #  DATA
 ######

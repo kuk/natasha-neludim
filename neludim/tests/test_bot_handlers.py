@@ -279,15 +279,3 @@ async def test_other(context):
     assert match_trace(context.bot.trace, [
         ['sendMessage', 'Бот Нелюдим']
     ])
-
-
-#####
-#  V1
-#######
-
-
-async def test_v1_commands(context):
-    await process_update(context, message_json('/show_contact'))
-    assert match_trace(context.bot.trace, [
-        ['sendMessage', 'обновил интерфейс бота']
-    ])
