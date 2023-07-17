@@ -80,7 +80,7 @@ async def test_ask_feedback(context):
 
 
 async def test_manual_match(context):
-    agreed_participate = week_index_monday(context.schedule.current_week_index() - 1)  # TODO
+    agreed_participate = week_index_monday(context.schedule.current_week_index())
     context.db.users = [
         User(user_id=1, username='a', created=0, agreed_participate=agreed_participate),
         User(user_id=2, username='b', created=0, agreed_participate=agreed_participate),

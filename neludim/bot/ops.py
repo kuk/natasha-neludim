@@ -309,7 +309,7 @@ def manual_match_markup(users):
 
 async def manual_match(context):
     users = await context.db.read_users()
-    current_week_index = context.schedule.current_week_index() - 1  # TODO drop -1
+    current_week_index = context.schedule.current_week_index()
 
     users = [
         _ for _ in users
