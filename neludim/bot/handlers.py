@@ -22,6 +22,7 @@ from neludim.const import (
     EDIT_PROFILE_PREFIX,
     PARTICIPATE_PREFIX,
     FEEDBACK_PREFIX,
+    MANUAL_MATCH_PREFIX,
 
     CANCEL_EDIT_DATA,
     CANCEL_FEEDBACK_DATA,
@@ -30,6 +31,11 @@ from neludim.const import (
     CONFIRM_STATE,
 
     BAD_SCORE,
+
+    SELECT_USER_ACTION,
+    SELECT_PARTNER_USER_ACTION,
+    CONFIRM_ACTION,
+    CANCEL_ACTION,
 )
 from neludim.city import (
     CITIES,
@@ -41,7 +47,11 @@ from neludim.text import (
     day_month,
     profile_text,
 )
-from neludim.obj import User
+from neludim.obj import (
+    User,
+    Match
+)
+from neludim.schedule import week_index
 
 from .data import (
     serialize_data,
@@ -49,6 +59,7 @@ from .data import (
     EditProfileData,
     ParticipateData,
     FeedbackData,
+    ManualMatchData,
 )
 
 
@@ -530,6 +541,144 @@ async def handle_feedback_input(context, message):
 
 ######
 #
+#   MANUAL MATCH
+#
+######
+
+
+SELECT_USER_TEXT = f'''user: {EMPTY_SYMBOL}
+partner user: {EMPTY_SYMBOL}'''
+
+
+def select_user_markup(users):
+    markup = InlineKeyboardMarkup(row_width=5)
+    for index, user in enumerate(users[:100], 1):
+        button = InlineKeyboardButton(
+            text=str(index),
+            callback_data=serialize_data(ManualMatchData(
+                action=SELECT_USER_ACTION,
+                user_id=user.user_id
+            ))
+        )
+        markup.insert(button)
+    return markup
+
+
+def select_partner_user_text(user):
+    return f'''user: {user_mention(user)}
+{profile_text(user)}
+
+partner user: {EMPTY_SYMBOL}'''
+
+
+def select_partner_user_markup(user, partner_users):
+    markup = InlineKeyboardMarkup(row_width=5)
+    for index, partner_user in enumerate(partner_users[:100], 1):
+        button = InlineKeyboardButton(
+            text=str(index),
+            callback_data=serialize_data(ManualMatchData(
+                action=SELECT_PARTNER_USER_ACTION,
+                user_id=user.user_id,
+                partner_user_id=partner_user.user_id
+            ))
+        )
+        markup.insert(button)
+    return markup
+
+
+def confirm_manual_match_text(user, partner_user):
+    return f'''user: {user_mention(user)}
+{profile_text(user)}
+
+partner user: {user_mention(partner_user)}
+{profile_text(partner_user)}'''
+
+
+def confirm_manual_match_markup(user, partner_user):
+    return InlineKeyboardMarkup(row_width=1).add(
+        InlineKeyboardButton(
+            text='✓ confirm',
+            callback_data=serialize_data(ManualMatchData(
+                action=CONFIRM_ACTION,
+                user_id=user.user_id,
+                partner_user_id=partner_user.user_id
+            ))
+        ),
+        InlineKeyboardButton(
+            text='✗ cancel',
+            callback_data=serialize_data(ManualMatchData(
+                action=CANCEL_ACTION
+            ))
+        )
+    )
+
+
+def manual_match_text(user, partner_user):
+    return f'{user_mention(user)} -> {user_mention(partner_user)}'
+
+
+async def manual_match_users(context):
+    users = await context.db.read_users()
+    current_week_index = context.schedule.current_week_index() - 1  # TODO drop -1
+    users = [
+        _ for _ in users
+        if (
+                _.user_id == ADMIN_USER_ID
+                or (
+                    _.agreed_participate
+                    and week_index(_.agreed_participate) == current_week_index
+                )
+        )
+    ]
+    return sorted(users, key=lambda _: _.created)
+
+
+async def handle_manual_match(context, query):
+    data = deserialize_data(query.data, ManualMatchData)
+    await query.answer()
+
+    if data.action == SELECT_USER_ACTION:
+        user = await context.db.get_user(data.user_id)
+        users = await manual_match_users(context)
+        await query.message.edit_text(
+            text=select_partner_user_text(user),
+            reply_markup=select_partner_user_markup(user, users)
+        )
+
+    elif data.action == SELECT_PARTNER_USER_ACTION:
+        user = await context.db.get_user(data.user_id)
+        partner_user = await context.db.get_user(data.partner_user_id)
+        await query.message.edit_text(
+            text=confirm_manual_match_text(user, partner_user),
+            reply_markup=confirm_manual_match_markup(user, partner_user)
+        )
+
+    elif data.action == CONFIRM_ACTION:
+        user = await context.db.get_user(data.user_id)
+        partner_user = await context.db.get_user(data.partner_user_id)
+        match = Match(user.user_id, partner_user.user_id)
+        await context.db.put_manual_match(match)
+        await context.bot.send_message(
+            chat_id=ADMIN_USER_ID,
+            text=manual_match_text(user, partner_user)
+        )        
+
+        users = await manual_match_users(context)
+        await query.message.edit_text(
+            text=SELECT_USER_TEXT,
+            reply_markup=select_user_markup(users)
+        )
+
+    elif data.action == CANCEL_ACTION:
+        users = await manual_match_users(context)
+        await query.message.edit_text(
+            text=SELECT_USER_TEXT,
+            reply_markup=select_user_markup(users)
+        )
+
+
+######
+#
 #  HELP/OTHER
 #
 ########
@@ -614,6 +763,11 @@ def setup_handlers(context):
     context.dispatcher.register_callback_query_handler(
         partial(handle_cancel_feedback, context),
         text=CANCEL_FEEDBACK_DATA
+    )
+
+    context.dispatcher.register_callback_query_handler(
+        partial(handle_manual_match, context),
+        text_startswith=MANUAL_MATCH_PREFIX
     )
 
     context.dispatcher.register_message_handler(

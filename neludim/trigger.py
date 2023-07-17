@@ -48,6 +48,8 @@ TASKS = [
     Task(MONDAY, 9, ops.send_contacts),
     Task(SATURDAY, 17, ops.ask_feedback),
 
+    Task(SUNDAY, 17, ops.manual_match),
+
     Task(MONDAY, 0, ops.send_reports),
 ]
 

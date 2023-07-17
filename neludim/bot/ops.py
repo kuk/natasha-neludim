@@ -13,8 +13,11 @@ from neludim.const import (
     GREAT_SCORE,
     OK_SCORE,
     BAD_SCORE,
+
+    SELECT_USER_ACTION,
 )
 from neludim.text import (
+    EMPTY_SYMBOL,
     day_month,
     user_mention,
     profile_text,
@@ -36,6 +39,7 @@ from .data import (
     serialize_data,
     ParticipateData,
     FeedbackData,
+    ManualMatchData,
 )
 
 
@@ -248,6 +252,88 @@ async def ask_feedback(context):
             text=ask_feedback_text(partner_user),
             reply_markup=ask_feedback_markup(context, partner_user)
         )
+
+
+#######
+#
+#   MANUAL MATCH
+#
+#####
+
+
+def cap_text(text, max_size=10):
+    lines = text.splitlines()
+    if len(lines) > max_size:
+        lines = lines[:max_size] + ['...']
+    return '\n'.join(lines)
+
+
+def manual_match_profile_texts(users):
+    text = ''
+    for index, user in enumerate(users, 1):
+        sep = '\n\n' if text else ''
+        chunk = f'''{sep}{index} {user_mention(user)}
+{cap_text(profile_text(user))}'''
+
+        # https://core.telegram.org/bots/api#sendmessage "Text of the
+        # message to be sent, 1-4096 characters after entities
+        # parsing". Assume len(text) == "length after parsing"
+        if len(text) + len(chunk) > 4096:
+            yield text
+            text = ''
+        text += chunk
+
+    if text:
+        yield text
+
+
+MANUAL_MATCH_TEXT = f'''user: {EMPTY_SYMBOL}
+partner user: {EMPTY_SYMBOL}'''
+
+
+def manual_match_markup(users):
+    # Max width = 8. Max buttons = 100, won't manually match more any
+    # way
+    markup = InlineKeyboardMarkup(row_width=5)
+    for index, user in enumerate(users[:100], 1):
+        button = InlineKeyboardButton(
+            text=str(index),
+            callback_data=serialize_data(ManualMatchData(
+                action=SELECT_USER_ACTION,
+                user_id=user.user_id
+            ))
+        )
+        markup.insert(button)
+    return markup
+
+
+async def manual_match(context):
+    users = await context.db.read_users()
+    current_week_index = context.schedule.current_week_index() - 1  # TODO drop -1
+
+    users = [
+        _ for _ in users
+        if (
+                _.user_id == ADMIN_USER_ID
+                or (
+                    _.agreed_participate
+                    and week_index(_.agreed_participate) == current_week_index
+                )
+        )
+    ]
+    users = sorted(users, key=lambda _: _.created)
+
+    for text in manual_match_profile_texts(users):
+        await context.bot.send_message(
+            chat_id=ADMIN_USER_ID,
+            text=text
+        )
+
+    await context.bot.send_message(
+        chat_id=ADMIN_USER_ID,
+        text=MANUAL_MATCH_TEXT,
+        reply_markup=manual_match_markup(users)
+    )
 
 
 ######

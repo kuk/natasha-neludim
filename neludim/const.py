@@ -97,6 +97,7 @@ HELP_COMMAND = 'help'
 EDIT_PROFILE_PREFIX = 'edit_profile'
 PARTICIPATE_PREFIX = 'participate'
 FEEDBACK_PREFIX = 'feedback'
+MANUAL_MATCH_PREFIX = 'manual_match'
 
 CANCEL_EDIT_DATA = 'cancel_edit'
 CANCEL_FEEDBACK_DATA = 'cancel_feedback'
@@ -116,6 +117,15 @@ ABOUT_FIELD = 'about'
 
 CONFIRM_STATE = 'confirm'
 FAIL_STATE = 'fail'
+
+######
+#  ACTION
+####
+
+SELECT_USER_ACTION = 'select_user'
+SELECT_PARTNER_USER_ACTION = 'select_partner_user'
+CONFIRM_ACTION = 'confirm'
+CANCEL_ACTION = 'cancel'
 
 #####
 #  SCORE

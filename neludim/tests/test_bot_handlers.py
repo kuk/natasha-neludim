@@ -2,6 +2,7 @@
 from neludim.obj import (
     User,
     Contact,
+    Match
 )
 
 from neludim.tests.fake import (
@@ -233,8 +234,34 @@ async def test_cancel_feedback(context):
     ])
 
 
+######
+#
+#   MANUAL MATCH
+#
+#####
+
+
+async def test_manual_match(context):
+    context.db.users = [User(user_id=1), User(user_id=2)]
+    await process_update(context, query_json('manual_match:select_user:1'))
+    await process_update(context, query_json('manual_match:select_partner_user:1:2'))
+    await process_update(context, query_json('manual_match:confirm:1:2'))
+    assert match_trace(context.bot.trace, [
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['editMessageText', '{"text": "user: 1'],
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['editMessageText', 'partner user: 2'],
+        ['answerCallbackQuery', '{"callback_query_id": "1"}'],
+        ['sendMessage', '1 -> 2'],
+        ['editMessageText', 'user: ∅'],
+    ])
+    assert context.db.manual_matches == [Match(user_id=1, partner_user_id=2)]
+
+
 #######
+#
 #   HELP/OTHER
+#
 #######
 
 
