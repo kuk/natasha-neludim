@@ -661,7 +661,7 @@ async def handle_manual_match(context, query):
         await context.bot.send_message(
             chat_id=ADMIN_USER_ID,
             text=manual_match_text(user, partner_user)
-        )        
+        )
 
         users = await manual_match_users(context)
         await query.message.edit_text(
