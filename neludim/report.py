@@ -37,17 +37,34 @@ class MatchReportRecord:
     no_partner: bool
     state: str
     feedback_score: str
+    is_repeat: bool
+    is_manual_match: bool
 
 
-def gen_match_report(contacts):
-    group_contacts = defaultdict(list)
-    for contact in contacts:
-        user_id, partner_user_id = contact.user_id, contact.partner_user_id
-        if partner_user_id and user_id > partner_user_id:
-            user_id, partner_user_id = partner_user_id, user_id
-        group_contacts[user_id, partner_user_id].append(contact)
+def sort2(a, b):
+    if a and b and a > b:
+        return b, a
+    return a, b
 
-    def key(group):
+
+def gen_match_report(week_contacts, prev_contacts, manual_matches):
+    key_groups = defaultdict(list)
+    for contact in week_contacts:
+        key = sort2(contact.user_id, contact.partner_user_id)
+        key_groups[key].append(contact)
+
+    prev_contact_keys = set()
+    for contact in prev_contacts:
+        key = sort2(contact.user_id, contact.partner_user_id)
+        prev_contact_keys.add(key)
+
+    manual_match_keys = set()
+    for match in manual_matches:
+        key = sort2(match.user_id, match.partner_user_id)
+        manual_match_keys.add(key)
+
+    def order(key):
+        group = key_groups[key]
         no_partner = len(group) == 1
         has_feedback = any(_.feedback_score for _ in group)
         states = {_.state for _ in group if _.state}
@@ -69,13 +86,18 @@ def gen_match_report(contacts):
             state_order
         )
 
-    for group in sorted(group_contacts.values(), key=key):
+    for key in sorted(key_groups, key=order):
+        group = key_groups[key]
+        is_repeat = key in prev_contact_keys
+        is_manual_match = key in manual_match_keys
         for contact in group:
             yield MatchReportRecord(
                 user_id=contact.user_id,
                 no_partner=len(group) == 1,
                 state=contact.state,
-                feedback_score=contact.feedback_score
+                feedback_score=contact.feedback_score,
+                is_repeat=is_repeat,
+                is_manual_match=is_manual_match
             )
 
 
@@ -84,8 +106,7 @@ def format_match_report(records, id_users):
         user = id_users[record.user_id]
         mention = user_mention(user)
 
-        state, feedback_score, corner = '   '
-
+        state, feedback_score = '  '
         if record.no_partner:
             state = 'NP'
         elif record.state:
@@ -101,10 +122,21 @@ def format_match_report(records, id_users):
                 BAD_SCORE: 'B!',
             }[record.feedback_score]
 
-        if state != 'NP':
-            corner = '╭╰'[index % 2]
 
-        yield f'{corner} {state:<2} {feedback_score:>2} {mention}'
+        flags, corner = '  '
+        if state != 'NP':
+            if index % 2 == 0:
+                flags = ''
+                if record.is_repeat:
+                    flags += '↻'
+                if record.is_manual_match:
+                    flags += '◇'
+
+                corner = '╭'
+            else:
+                corner = '╰'
+
+        yield f'{flags:>2}{corner} {state:<2} {feedback_score:>2} {mention}'
 
 
 ######
@@ -133,15 +165,13 @@ class WeeksReportRecord:
 
 
 def propogate_contact_states(contacts):
-    group_contacts = defaultdict(list)
+    key_groups = defaultdict(list)
     for contact in contacts:
         if contact.partner_user_id:
-            user_id, partner_user_id = contact.user_id, contact.partner_user_id
-            if user_id > partner_user_id:
-                user_id, partner_user_id = partner_user_id, user_id
-            group_contacts[user_id, partner_user_id].append(contact)
+            key = sort2(contact.user_id, contact.partner_user_id)
+            key_groups[key].append(contact)
 
-    for group in group_contacts.values():
+    for group in key_groups.values():
         states = {_.state for _ in group if _.state}
 
         if states:
