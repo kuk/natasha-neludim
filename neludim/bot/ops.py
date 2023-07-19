@@ -101,7 +101,12 @@ async def create_contacts(context):
                 and week_index(_.agreed_participate) == current_week_index - 1
         )
     ]
-    matches = list(gen_matches(participate_users, manual_matches, contacts))
+    matches = list(gen_matches(
+        participate_users,
+        manual_matches=manual_matches,
+        contacts=contacts,
+        current_week_index=current_week_index,
+    ))
 
     contacts = []
     for match in matches:
