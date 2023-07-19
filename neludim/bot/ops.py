@@ -354,6 +354,7 @@ async def send_reports(context):
         for _ in await context.db.read_users()
     }
     contacts = await context.db.read_contacts()
+    manual_matches = await context.db.read_manual_matches()
     current_week_index = context.schedule.current_week_index()
 
     records = gen_weeks_report(contacts)
@@ -364,11 +365,9 @@ async def send_reports(context):
         text=text
     )
 
-    week_contacts = [
-        _ for _ in contacts
-        if _.week_index == current_week_index - 1
-    ]
-    records = gen_match_report(week_contacts)
+    prev_contacts = [_ for _ in contacts if _.week_index < current_week_index - 1]
+    week_contacts = [_ for _ in contacts if _.week_index == current_week_index - 1]
+    records = gen_match_report(week_contacts, prev_contacts, manual_matches)
     lines = format_match_report(records, id_users)
     text = report_text(lines, html=True)
     await context.bot.send_message(
@@ -376,11 +375,9 @@ async def send_reports(context):
         text=text
     )
 
-    week_contacts = [
-        _ for _ in contacts
-        if _.week_index == current_week_index
-    ]
-    records = gen_match_report(week_contacts)
+    prev_contacts = [_ for _ in contacts if _.week_index < current_week_index]
+    week_contacts = [_ for _ in contacts if _.week_index == current_week_index]
+    records = gen_match_report(week_contacts, prev_contacts, manual_matches)
     lines = format_match_report(records, id_users)
     text = report_text(lines, html=True)
     await context.bot.send_message(
