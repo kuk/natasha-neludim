@@ -11,8 +11,8 @@ def test_even():
     users = [User(user_id=_) for _ in range(4)]
     matches = list(gen_matches(users))
     assert matches == [
-        Match(user_id=0, partner_user_id=1),
-        Match(user_id=2, partner_user_id=3)
+        Match(user_id=0, partner_user_id=2),
+        Match(user_id=1, partner_user_id=3)
     ]
 
 
@@ -20,8 +20,8 @@ def test_odd():
     users = [User(user_id=_) for _ in range(3)]
     matches = list(gen_matches(users))
     assert matches == [
-        Match(user_id=0, partner_user_id=1),
-        Match(user_id=2, partner_user_id=None)
+        Match(user_id=1, partner_user_id=2),
+        Match(user_id=0, partner_user_id=None)
     ]
 
 
@@ -34,8 +34,8 @@ def test_manual():
     ]
     matches = list(gen_matches(users, manual_matches=manual_matches))
     assert matches == [
-        Match(user_id=1, partner_user_id=4),
-        Match(user_id=0, partner_user_id=2),
+        Match(user_id=1, partner_user_id=2),
+        Match(user_id=0, partner_user_id=4),
         Match(user_id=3, partner_user_id=None),
     ]
 
@@ -50,7 +50,7 @@ def test_skip():
     ]
     matches = list(gen_matches(users, contacts=contacts, current_week_index=2))
     assert matches == [
-        Match(user_id=0, partner_user_id=3),
-        Match(user_id=2, partner_user_id=4),
+        Match(user_id=0, partner_user_id=4),
+        Match(user_id=2, partner_user_id=3),
         Match(user_id=1, partner_user_id=None),
     ]

@@ -30,12 +30,12 @@ def test_match_report():
     ]
     id_users = {_.user_id: _ for _ in users}
 
-    records = gen_match_report(contacts)
+    records = gen_match_report(contacts, prev_contacts=(), manual_matches=())
     lines = format_match_report(records, id_users)
     assert report_text(lines) == '''
-╭ F!    @a
-╰ C  B! @b
-  NP    C
+  ╭ F!    @a
+  ╰ C  B! @b
+    NP    C
 '''.strip('\n')
 
 

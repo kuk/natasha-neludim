@@ -36,9 +36,9 @@ async def test_create_contacts(context):
     ]
     await create_contacts(context)
     assert context.db.contacts == [
-        Contact(week_index=0, user_id=1, partner_user_id=2),
-        Contact(week_index=0, user_id=2, partner_user_id=1),
-        Contact(week_index=0, user_id=3, partner_user_id=None),
+        Contact(week_index=0, user_id=2, partner_user_id=3),
+        Contact(week_index=0, user_id=3, partner_user_id=2),
+        Contact(week_index=0, user_id=1, partner_user_id=None),
     ]
 
 
