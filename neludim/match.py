@@ -122,7 +122,7 @@ def sort2(a, b):
     return a, b
 
 
-def gen_matches(users, manual_matches, contacts, current_week_index=0, rounds=10):
+def gen_matches(users, manual_matches=(), contacts=(), current_week_index=0, rounds=10):
     key_contacts = defaultdict(list)
     for contact in sorted(contacts, key=lambda _: _.week_index):
         if contact.partner_user_id:
