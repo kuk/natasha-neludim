@@ -122,7 +122,6 @@ def format_match_report(records, id_users):
                 BAD_SCORE: 'B!',
             }[record.feedback_score]
 
-
         flags, corner = '  '
         if state != 'NP':
             if index % 2 == 0:
